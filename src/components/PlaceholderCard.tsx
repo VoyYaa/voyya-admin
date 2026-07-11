@@ -1,10 +1,3 @@
-// =============================================================================
-// VoyYa Admin — PlaceholderCard
-// -----------------------------------------------------------------------------
-// Tarjeta de "próximo ciclo": comunica qué vendrá sin fingir que ya existe.
-// Deliberadamente sin datos/acciones reales — ver README § Mínimo vs. próximo ciclo.
-// =============================================================================
-
 import type { JSX } from 'react';
 
 export interface PlaceholderCardProps {

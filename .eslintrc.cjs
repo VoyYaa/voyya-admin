@@ -1,7 +1,3 @@
-/**
- * ESLint de frontend-yavoy-admin (Vite + React + TS).
- * Regla dura del proyecto VoyYa: prohibido `any`.
- */
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',

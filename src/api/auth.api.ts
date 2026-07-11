@@ -1,45 +1,37 @@
-// =============================================================================
-// VoyYa Admin — API del dominio AUTH (correo + contraseña · HU-AUTH-03/04)
-// -----------------------------------------------------------------------------
-// Funciones finas 1:1 con contracts/auth.ts (vendorizado de @voyya/shared). Cada
-// DTO se valida con `.parse()` antes de enviarlo (defensa en profundidad) y la
-// respuesta con su esquema — mismo patrón que apps/passenger|driver.
-// =============================================================================
-
 import {
-  ErrorAuth,
-  LoginAdminDTO,
+  AdminLoginDTO,
+  AuthError,
   LogoutDTO,
+  LogoutResponse,
   RefreshDTO,
-  RespuestaLogout,
-  RespuestaRefresh,
-  RespuestaSesion,
+  RefreshResponse,
+  SessionResponse,
 } from '../contracts/auth';
 import { apiRequest } from './http-client';
 
-export function loginAdmin(dto: LoginAdminDTO): Promise<RespuestaSesion> {
-  const body = LoginAdminDTO.parse(dto);
+export function loginAdmin(dto: AdminLoginDTO): Promise<SessionResponse> {
+  const body = AdminLoginDTO.parse(dto);
   return apiRequest(
     { method: 'POST', path: '/auth/admin/login', body, skipAuth: true },
-    RespuestaSesion,
-    ErrorAuth,
+    SessionResponse,
+    AuthError,
   );
 }
 
-export function refrescarSesion(dto: RefreshDTO): Promise<RespuestaRefresh> {
+export function refreshSession(dto: RefreshDTO): Promise<RefreshResponse> {
   const body = RefreshDTO.parse(dto);
   return apiRequest(
     { method: 'POST', path: '/auth/refresh', body, skipAuth: true },
-    RespuestaRefresh,
-    ErrorAuth,
+    RefreshResponse,
+    AuthError,
   );
 }
 
-export function cerrarSesion(dto: LogoutDTO): Promise<RespuestaLogout> {
+export function logout(dto: LogoutDTO): Promise<LogoutResponse> {
   const body = LogoutDTO.parse(dto);
   return apiRequest(
     { method: 'POST', path: '/auth/logout', body, skipAuth: true },
-    RespuestaLogout,
-    ErrorAuth,
+    LogoutResponse,
+    AuthError,
   );
 }

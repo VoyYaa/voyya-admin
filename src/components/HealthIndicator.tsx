@@ -1,17 +1,9 @@
-// =============================================================================
-// VoyYa Admin — HealthIndicator
-// -----------------------------------------------------------------------------
-// Llama a `GET /health` al montar (y bajo demanda con "Revisar"). Sin librería
-// de data-fetching (KISS): un componente, un `useEffect`, un `useState` — no
-// justifica TanStack Query para una sola llamada sin cache/reintentos.
-// =============================================================================
-
 import { useCallback, useEffect, useState, type JSX } from 'react';
-import { getHealth, type RespuestaHealth } from '../api/health.api';
+import { getHealth, type HealthResponse } from '../api/health.api';
 
 type HealthState =
   | { kind: 'loading' }
-  | { kind: 'ok'; data: RespuestaHealth }
+  | { kind: 'ok'; data: HealthResponse }
   | { kind: 'error'; message: string };
 
 export function HealthIndicator(): JSX.Element {

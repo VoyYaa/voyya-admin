@@ -1,11 +1,3 @@
-// =============================================================================
-// VoyYa Admin — App (rutas + guard)
-// -----------------------------------------------------------------------------
-// "/login" pública; "/" protegida por RouteGuard. `hydrate()` se dispara una
-// vez al montar, ANTES de que RouteGuard decida redirigir (ver
-// state/session-store.ts § status 'hydrating').
-// =============================================================================
-
 import { useEffect, type JSX } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { RouteGuard } from './components/RouteGuard';

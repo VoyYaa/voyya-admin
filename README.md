@@ -19,7 +19,7 @@ frontend-yavoy-admin/
 │   ├── lib/
 │   │   └── local-storage.ts   # persistencia de sesión (localStorage)
 │   ├── state/
-│   │   └── session-store.ts   # Zustand: status/tokens/usuario + wiring del interceptor
+│   │   └── session-store.ts   # Zustand: status/tokens/user + wiring del interceptor
 │   ├── components/
 │   │   ├── RouteGuard.tsx      # sin sesión → /login
 │   │   ├── HealthIndicator.tsx
@@ -89,8 +89,8 @@ Opciones para el futuro (fuera de alcance de este assembly):
 1. Publicar `@voyya/shared` como paquete **privado** (npm/GitHub Packages) y consumirlo aquí
    como dependencia versionada normal — elimina el copy-paste.
 2. Reducir el vendored file a solo lo que esta consola usa (ya es un subconjunto pequeño:
-   `LoginAdminDTO`, `RespuestaSesion`, `SesionTokens`, `UsuarioSesion`, `RefreshDTO`,
-   `RespuestaRefresh`, `LogoutDTO`, `RespuestaLogout`, `ErrorAuth`, `CodigoErrorAuth`, `Rol`).
+   `AdminLoginDTO`, `SessionResponse`, `SessionTokens`, `SessionUser`, `RefreshDTO`,
+   `RefreshResponse`, `LogoutDTO`, `LogoutResponse`, `AuthError`, `AuthErrorCode`, `Role`).
 
 ## Qué es mínimo (este ciclo) vs. próximo ciclo
 

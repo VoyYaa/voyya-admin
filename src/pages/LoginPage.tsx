@@ -1,25 +1,15 @@
-// =============================================================================
-// VoyYa Admin — LoginPage (HU-AUTH-03: correo + contraseña)
-// -----------------------------------------------------------------------------
-// react-hook-form + zodResolver(LoginAdminDTO): reusa el contrato vendorizado
-// como validador en runtime (no se reescriben a mano las reglas de "email
-// válido"/"mínimo 8 caracteres" — ya viven en contracts/auth.ts), mismo patrón
-// que apps/passenger (frontend-yavoy) para sus formularios.
-// =============================================================================
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, type JSX } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { loginAdmin } from '../api/auth.api';
-import { codigoErrorDominio, esErrorDeRed } from '../api/errors';
-import { LoginAdminDTO } from '../contracts/auth';
+import { domainErrorCode, isNetworkError } from '../api/errors';
+import { AdminLoginDTO } from '../contracts/auth';
 import { useSessionStore } from '../state/session-store';
 
-/** Mensajes amigables por código de dominio (ErrorAuth) — el resto cae al genérico. */
-const MENSAJES_ERROR: Record<string, string> = {
-  CREDENCIALES_INVALIDAS: 'Correo o contraseña incorrectos.',
-  CUENTA_SUSPENDIDA: 'Esta cuenta está suspendida.',
+const ERROR_MESSAGES: Record<string, string> = {
+  INVALID_CREDENTIALS: 'Correo o contraseña incorrectos.',
+  ACCOUNT_SUSPENDED: 'Esta cuenta está suspendida.',
 };
 
 export function LoginPage(): JSX.Element {
@@ -33,12 +23,11 @@ export function LoginPage(): JSX.Element {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginAdminDTO>({
-    resolver: zodResolver(LoginAdminDTO),
-    defaultValues: { correo: '', password: '' },
+  } = useForm<AdminLoginDTO>({
+    resolver: zodResolver(AdminLoginDTO),
+    defaultValues: { email: '', password: '' },
   });
 
-  // Ya hay sesión (p.ej. el operador navegó manualmente a /login): no mostrar el form.
   if (status === 'authenticated') {
     return <Navigate to="/" replace />;
   }
@@ -47,15 +36,15 @@ export function LoginPage(): JSX.Element {
     setErrorMsg(null);
     setSubmitting(true);
     try {
-      const respuesta = await loginAdmin(dto);
-      setSession(respuesta);
+      const response = await loginAdmin(dto);
+      setSession(response);
       navigate('/', { replace: true });
     } catch (error) {
-      if (esErrorDeRed(error)) {
+      if (isNetworkError(error)) {
         setErrorMsg('No hay conexión con el servidor.');
       } else {
-        const codigo = codigoErrorDominio(error);
-        setErrorMsg((codigo && MENSAJES_ERROR[codigo]) ?? 'No se pudo iniciar sesión.');
+        const code = domainErrorCode(error);
+        setErrorMsg((code && ERROR_MESSAGES[code]) ?? 'No se pudo iniciar sesión.');
       }
     } finally {
       setSubmitting(false);
@@ -70,17 +59,17 @@ export function LoginPage(): JSX.Element {
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <div>
-            <label htmlFor="correo" className="mb-1 block text-sm font-medium text-espresso">
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-espresso">
               Correo
             </label>
             <input
-              id="correo"
+              id="email"
               type="email"
               autoComplete="username"
               className="w-full rounded-xl border border-espresso/15 bg-white px-3 py-2 text-espresso outline-none focus:border-amber focus:ring-2 focus:ring-amber/30"
-              {...register('correo')}
+              {...register('email')}
             />
-            {errors.correo && <p className="mt-1 text-xs text-danger">{errors.correo.message}</p>}
+            {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
           </div>
 
           <div>
