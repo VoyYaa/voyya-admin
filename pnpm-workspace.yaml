@@ -1,0 +1,5 @@
+# Ancla la raíz del workspace pnpm EN ESTE repo (single-package, sin sub-paquetes).
+# Sin este archivo, pnpm sigue buscando pnpm-workspace.yaml hacia arriba y podía
+# terminar resolviendo el del monorepo VoyYa (directorio padre) en vez de tratar
+# este repo como standalone — este archivo evita esa ambigüedad.
+packages: []
