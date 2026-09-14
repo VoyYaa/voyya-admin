@@ -2,9 +2,7 @@ import { useCallback, useEffect, useState, type JSX } from 'react';
 import { getHealth, type HealthResponse } from '../api/health.api';
 
 type HealthState =
-  | { kind: 'loading' }
-  | { kind: 'ok'; data: HealthResponse }
-  | { kind: 'error'; message: string };
+  { kind: 'loading' } | { kind: 'ok'; data: HealthResponse } | { kind: 'error'; message: string };
 
 export function HealthIndicator(): JSX.Element {
   const [state, setState] = useState<HealthState>({ kind: 'loading' });
@@ -36,7 +34,9 @@ export function HealthIndicator(): JSX.Element {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-espresso">{label}</p>
         {state.kind === 'ok' && (
-          <p className="truncate text-xs text-espresso/60">{new Date(state.data.ts).toLocaleString()}</p>
+          <p className="truncate text-xs text-espresso/60">
+            {new Date(state.data.ts).toLocaleString()}
+          </p>
         )}
       </div>
       <button

@@ -49,8 +49,7 @@ export function DashboardPage(): JSX.Element {
           <h1 className="text-lg font-bold text-espresso">VoyYa Admin</h1>
           {user && (
             <p className="text-sm text-espresso/70">
-              {user.first_name} {user.last_name} ·{' '}
-              <span className="capitalize">{user.role}</span>
+              {user.first_name} {user.last_name} · <span className="capitalize">{user.role}</span>
             </p>
           )}
         </div>

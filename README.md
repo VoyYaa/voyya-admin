@@ -56,8 +56,8 @@ pnpm dev                       # http://localhost:5173
 
 Vite solo expone al bundle del cliente las variables con prefijo `VITE_*` (build-time).
 
-| Variable       | Descripción                                                  |
-| -------------- | ------------------------------------------------------------- |
+| Variable       | Descripción                                                     |
+| -------------- | --------------------------------------------------------------- |
 | `VITE_API_URL` | URL base del backend NestJS (`http://localhost:3000` en local). |
 
 ## Deploy en Vercel

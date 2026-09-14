@@ -11,7 +11,10 @@ export const Phone = z
   .regex(/^(?:\+?57)?3\d{9}$/, 'Teléfono colombiano inválido (celular de 10 dígitos)');
 export type Phone = z.infer<typeof Phone>;
 
-export const NationalId = z.string().trim().regex(/^\d{5,15}$/, 'Cédula inválida');
+export const NationalId = z
+  .string()
+  .trim()
+  .regex(/^\d{5,15}$/, 'Cédula inválida');
 
 export const Pin = z.string().regex(/^\d{4,6}$/, 'PIN inválido (4 a 6 dígitos)');
 

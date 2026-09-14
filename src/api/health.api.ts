@@ -11,5 +11,9 @@ export type HealthResponse = z.infer<typeof HealthResponse>;
 const HealthError = z.object({ code: z.string(), message: z.string() });
 
 export function getHealth(): Promise<HealthResponse> {
-  return apiRequest({ method: 'GET', path: '/health', skipAuth: true }, HealthResponse, HealthError);
+  return apiRequest(
+    { method: 'GET', path: '/health', skipAuth: true },
+    HealthResponse,
+    HealthError,
+  );
 }
