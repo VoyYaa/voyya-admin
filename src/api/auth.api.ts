@@ -6,7 +6,7 @@ import {
   RefreshDTO,
   RefreshResponse,
   SessionResponse,
-} from '../contracts/auth';
+} from '@voyyaa/shared';
 import { apiRequest } from './http-client';
 
 export function loginAdmin(dto: AdminLoginDTO): Promise<SessionResponse> {

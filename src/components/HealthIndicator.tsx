@@ -19,7 +19,7 @@ export function HealthIndicator(): JSX.Element {
   }, [check]);
 
   const dotClass =
-    state.kind === 'ok' ? 'bg-go' : state.kind === 'error' ? 'bg-danger' : 'bg-espresso/30';
+    state.kind === 'ok' ? 'bg-success' : state.kind === 'error' ? 'bg-danger' : 'bg-status-neutral';
 
   const label =
     state.kind === 'ok'
@@ -29,20 +29,13 @@ export function HealthIndicator(): JSX.Element {
         : 'Revisando…';
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-amber/20 bg-white/60 px-4 py-3 shadow-sm">
-      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotClass}`} aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-espresso">{label}</p>
-        {state.kind === 'ok' && (
-          <p className="truncate text-xs text-espresso/60">
-            {new Date(state.data.ts).toLocaleString()}
-          </p>
-        )}
-      </div>
+    <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-small text-text-muted">
+      <span className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`} aria-hidden="true" />
+      <span className="max-w-[16rem] truncate">{label}</span>
       <button
         type="button"
         onClick={check}
-        className="shrink-0 rounded-full px-3 py-1 text-xs font-medium text-amber-deep hover:bg-amber/10"
+        className="focus-ring shrink-0 rounded-sm px-1 text-small font-medium text-text hover:text-amber-deep"
       >
         Revisar
       </button>

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AuthError } from '../contracts/auth';
+import { AuthError } from '@voyyaa/shared';
 import { ApiError } from './errors';
 
 function resolveBaseUrl(): string {
@@ -19,14 +19,32 @@ export function configureAuthHandlers(handlers: AuthHandlers): void {
   authHandlers = handlers;
 }
 
+type ApiQueryValue = string | number | undefined;
+
 interface ApiRequestOptions {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'PUT';
   path: string;
   body?: unknown;
+  query?: Record<string, ApiQueryValue>;
   skipAuth?: boolean;
 }
 
-const GenericErrorShape = z.object({ code: z.string(), message: z.string() });
+const GenericErrorShape = z.object({
+  code: z.string(),
+  message: z.string(),
+  field: z.string().optional(),
+  retry_in_sec: z.number().optional(),
+});
+
+function buildUrl(baseUrl: string, path: string, query?: Record<string, ApiQueryValue>): string {
+  if (!query) return `${baseUrl}${path}`;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return qs.length > 0 ? `${baseUrl}${path}?${qs}` : `${baseUrl}${path}`;
+}
 
 export function apiRequest<TResponse>(
   options: ApiRequestOptions,
@@ -46,7 +64,7 @@ async function performRequest<TResponse>(
 
   let res: Response;
   try {
-    res = await fetch(`${resolveBaseUrl()}${options.path}`, {
+    res = await fetch(buildUrl(resolveBaseUrl(), options.path, options.query), {
       method: options.method,
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +89,14 @@ async function performRequest<TResponse>(
   if (!res.ok) {
     const parsedError = errorSchema.safeParse(json);
     if (parsedError.success) {
-      throw new ApiError('http', parsedError.data.message, res.status, parsedError.data.code);
+      throw new ApiError(
+        'http',
+        parsedError.data.message,
+        res.status,
+        parsedError.data.code,
+        parsedError.data.retry_in_sec,
+        parsedError.data.field,
+      );
     }
     throw new ApiError('http', `Error inesperado del servidor (${res.status}).`, res.status);
   }

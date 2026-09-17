@@ -2,8 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-bg: #fbf6ed;
+  --color-bg-shell: #f2e9d6;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f6f1e6;
+  --color-border: #eadfc9;
+  --color-text: #2a2018;
+  --color-text-muted: rgba(42, 32, 24, 0.7);
+  --color-on-brand: #2a2018;
+  --color-focus-ring: #2a2018;
+  --color-focus-halo: rgba(244, 162, 26, 0.35);
+  --color-status-neutral: rgba(42, 32, 24, 0.35);
+  --font-display: system-ui, -apple-system, 'Segoe UI Rounded', sans-serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.dark {
+  --color-bg: #1c140d;
+  --color-bg-shell: #241a11;
+  --color-surface: #2a2018;
+  --color-surface-sunken: #33261a;
+  --color-border: rgba(234, 223, 201, 0.16);
+  --color-text: #fbf6ed;
+  --color-text-muted: rgba(251, 246, 237, 0.7);
+  --color-on-brand: #2a2018;
+  --color-focus-ring: #fbf6ed;
+  --color-focus-halo: rgba(244, 162, 26, 0.35);
+  --color-status-neutral: rgba(251, 246, 237, 0.35);
+}
+
 @layer base {
   body {
-    @apply bg-crema text-espresso antialiased;
+    @apply bg-bg text-text antialiased;
+    font-family: var(--font-body);
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px var(--color-focus-halo);
   }
 }

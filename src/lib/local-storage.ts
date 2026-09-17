@@ -1,4 +1,4 @@
-import { SessionUser } from '../contracts/auth';
+import { SessionUser } from '@voyyaa/shared';
 
 const KEYS = {
   accessToken: 'voyya_admin_access_token',

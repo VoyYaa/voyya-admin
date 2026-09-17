@@ -31,6 +31,20 @@ jobs:
           node-version: '20'
           cache: pnpm
 
+      # Este repo se despliega aislado: en Vercel NO existe el directorio
+      # hermano ../voyya-shared. Una dependencia "link:" o "file:" funciona en
+      # local y rompe el despliegue con un error de resolución poco legible.
+      # ADR-016 fija la referencia real (git/registro); esto impide que el
+      # puente de desarrollo llegue a main sin que nadie se dé cuenta.
+      - name: Assert no local path dependencies
+        run: |
+          if grep -nE '"(link|file):' package.json; then
+            echo "::error::package.json referencia una dependencia por ruta local (link:/file:)."
+            echo "::error::Sustitúyela por la referencia de ADR-016 antes de mezclar a main."
+            exit 1
+          fi
+          echo "Sin dependencias por ruta local."
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

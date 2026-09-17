@@ -7,14 +7,24 @@ export function RouteGuard(): JSX.Element {
 
   if (status === 'hydrating') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-crema text-espresso">
-        <p className="text-sm text-espresso/70">Cargando sesión…</p>
+      <div className="flex min-h-screen items-center justify-center bg-bg text-text">
+        <p className="text-small text-text-muted">Cargando sesión…</p>
       </div>
     );
   }
 
   if (status === 'guest') {
     return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+}
+
+export function AdminOnlyGuard(): JSX.Element {
+  const role = useSessionStore((s) => s.user?.role);
+
+  if (role !== 'admin') {
+    return <Navigate to="/ops/queue" replace />;
   }
 
   return <Outlet />;

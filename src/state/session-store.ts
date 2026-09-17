@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SessionResponse, SessionTokens, SessionUser } from '../contracts/auth';
+import type { SessionResponse, SessionTokens, SessionUser } from '@voyyaa/shared';
 import { configureAuthHandlers } from '../api/http-client';
 import { refreshSession } from '../api/auth.api';
 import {
