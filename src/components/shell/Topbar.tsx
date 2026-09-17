@@ -1,66 +1,32 @@
 import type { JSX } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { logout } from '../../api/auth.api';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
 import { useSessionStore } from '../../state/session-store';
-import { HealthIndicator } from '../HealthIndicator';
 import { FreshnessBar } from '../ui/FreshnessBar';
+import { UserMenu } from './UserMenu';
 
 export function Topbar(): JSX.Element {
   const user = useSessionStore((s) => s.user);
-  const refreshToken = useSessionStore((s) => s.refreshToken);
-  const clearSession = useSessionStore((s) => s.clearSession);
-  const navigate = useNavigate();
   const online = useNetworkOnline();
 
-  const onLogout = async (): Promise<void> => {
-    try {
-      if (refreshToken) {
-        await logout({ refresh_token: refreshToken });
-      }
-    } finally {
-      clearSession();
-      navigate('/login', { replace: true });
-    }
-  };
-
-  const initial = user ? user.first_name.charAt(0).toUpperCase() : '?';
-
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-bg-shell px-6">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b-2 border-b-amber bg-frame-bg px-6">
       <div className="flex items-center gap-3">
-        <span className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-sm bg-amber" aria-hidden="true" />
-          <span className="text-title font-display font-bold tracking-tight text-text">VoyYa</span>
-        </span>
-        <span className="text-small text-text-muted">Cootrayal · Yarumal</span>
+        <a href="/ops/queue" className="focus-ring flex items-center gap-2.5 rounded-sm">
+          <span
+            className="relative inline-flex h-3 w-3 shrink-0 rounded-full bg-amber shadow-brand-halo"
+            aria-hidden="true"
+          />
+          <span className="text-title font-display font-black tracking-tight text-frame-text">
+            VoyYa
+          </span>
+        </a>
+        <span className="h-5 w-px bg-frame-border" aria-hidden="true" />
+        <span className="text-small text-frame-text-muted">Cootrayal · Yarumal</span>
       </div>
       <div className="flex items-center gap-4">
-        <HealthIndicator />
-        <FreshnessBar state={online ? 'live' : 'offline'} />
-        {user && (
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-amber text-btn text-on-brand"
-            >
-              {initial}
-            </span>
-            <div className="text-small leading-tight">
-              <p className="font-medium text-text">
-                {user.first_name} {user.last_name}
-              </p>
-              <p className="capitalize text-text-muted">{user.role}</p>
-            </div>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => void onLogout()}
-          className="focus-ring rounded-sm border border-border px-3 py-1.5 text-small font-medium text-text hover:bg-bg"
-        >
-          Cerrar sesión
-        </button>
+        <FreshnessBar state={online ? 'live' : 'offline'} variant="frame" />
+        <span className="h-5 w-px bg-frame-border" aria-hidden="true" />
+        {user && <UserMenu user={user} />}
       </div>
     </header>
   );

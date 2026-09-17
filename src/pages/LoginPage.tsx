@@ -55,7 +55,14 @@ export function LoginPage(): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 shadow-overlay-lg">
-        <h1 className="mb-1 text-display font-display text-text">VoyYa Admin</h1>
+        <div className="mb-1 flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="relative inline-flex h-3.5 w-3.5 shrink-0 rounded-full bg-amber shadow-brand-halo"
+          />
+          <h1 className="text-display font-display font-black tracking-tight text-text">VoyYa</h1>
+        </div>
+        <p className="mb-1 text-small text-text-muted">Admin</p>
         <p className="mb-6 text-body text-text-muted">Ingresa con tu correo y contraseña.</p>
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">

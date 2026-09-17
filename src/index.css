@@ -14,8 +14,9 @@
   --color-focus-ring: #2a2018;
   --color-focus-halo: rgba(244, 162, 26, 0.35);
   --color-status-neutral: rgba(42, 32, 24, 0.35);
-  --font-display: system-ui, -apple-system, 'Segoe UI Rounded', sans-serif;
-  --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system,
+    sans-serif;
+  --font-body: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 .dark {

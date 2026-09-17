@@ -135,6 +135,7 @@ export function AdminSettingsPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8 pb-28">
+      <p className="mb-1 text-eyebrow uppercase text-amber-ink dark:text-amber">Configuración</p>
       <h1 className="mb-6 text-display font-display text-text">Parámetros</h1>
 
       {conflict && (

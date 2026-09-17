@@ -11,6 +11,7 @@ import { DetailDrawer } from '../components/ui/DetailDrawer';
 import { FreshnessBar } from '../components/ui/FreshnessBar';
 import { StatusDot } from '../components/ui/StatusDot';
 import { EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStates';
+import { Timeline } from '../components/ui/Timeline';
 import { useAsync } from '../hooks/useAsync';
 import { useOpsPolling } from '../hooks/useOpsPolling';
 import { useQueueAnnouncement } from '../hooks/useQueueAnnouncement';
@@ -80,7 +81,10 @@ export function OpsQueuePage(): JSX.Element {
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-6 py-3">
-        <h1 className="text-display font-display text-text">Cola en vivo</h1>
+        <div>
+          <p className="text-eyebrow uppercase text-amber-ink dark:text-amber">Operación</p>
+          <h1 className="text-display font-display text-text">Cola en vivo</h1>
+        </div>
         <div className="flex flex-1 flex-wrap items-center gap-2">
           {FILTER_OPTIONS.map((option) => (
             <button
@@ -299,18 +303,14 @@ function TripDetailDrawer({ tripId, onClose }: TripDetailDrawerProps): JSX.Eleme
           </dl>
           <div>
             <h3 className="mb-2 text-title font-display text-text">Línea de tiempo</h3>
-            <ul className="space-y-1 text-small text-text-muted">
-              <li>Creada: {formatClockTime(data.timeline.requested_at)}</li>
-              {data.timeline.assigned_at && (
-                <li>Asignada: {formatClockTime(data.timeline.assigned_at)}</li>
-              )}
-              {data.timeline.arrived_at && (
-                <li>Conductor llegó: {formatClockTime(data.timeline.arrived_at)}</li>
-              )}
-              {data.timeline.finished_at && (
-                <li>Finalizada: {formatClockTime(data.timeline.finished_at)}</li>
-              )}
-            </ul>
+            <Timeline
+              items={[
+                { label: 'Creada', timestamp: data.timeline.requested_at },
+                { label: 'Asignada', timestamp: data.timeline.assigned_at },
+                { label: 'Conductor llegó', timestamp: data.timeline.arrived_at },
+                { label: 'Finalizada', timestamp: data.timeline.finished_at },
+              ]}
+            />
           </div>
         </div>
       )}

@@ -6,6 +6,7 @@ module.exports = {
     extend: {
       colors: {
         amber: { DEFAULT: '#F4A21A', deep: '#E0850A' },
+        'amber-ink': '#6B4505',
         espresso: '#2A2018',
         crema: '#FBF6ED',
         go: '#12A46A',
@@ -23,17 +24,27 @@ module.exports = {
         'on-success': '#FFFFFF',
         focus: { ring: 'var(--color-focus-ring)', halo: 'var(--color-focus-halo)' },
         'status-neutral': 'var(--color-status-neutral)',
+        frame: {
+          bg: '#2A2018',
+          text: '#FBF6ED',
+          'text-muted': 'rgba(251, 246, 237, 0.65)',
+          border: 'rgba(251, 246, 237, 0.14)',
+          'chip-bg': 'rgba(251, 246, 237, 0.08)',
+          'chip-border': 'rgba(251, 246, 237, 0.16)',
+          'active-bg': 'rgba(244, 162, 26, 0.16)',
+        },
       },
       fontFamily: {
         display: ['var(--font-display)', 'system-ui', 'sans-serif'],
         body: ['var(--font-body)', 'system-ui', 'sans-serif'],
       },
       fontSize: {
-        display: ['20px', { lineHeight: '26px', fontWeight: '700' }],
-        title: ['16px', { lineHeight: '22px', fontWeight: '600' }],
-        btn: ['14px', { lineHeight: '20px', fontWeight: '600' }],
-        body: ['14px', { lineHeight: '20px' }],
-        small: ['12px', { lineHeight: '16px' }],
+        display: ['30px', { lineHeight: '36px', fontWeight: '800' }],
+        title: ['18px', { lineHeight: '24px', fontWeight: '700' }],
+        eyebrow: ['11px', { lineHeight: '16px', fontWeight: '800', letterSpacing: '0.10em' }],
+        btn: ['13px', { lineHeight: '20px', fontWeight: '700' }],
+        body: ['13px', { lineHeight: '20px' }],
+        small: ['11px', { lineHeight: '16px' }],
         'table-header': [
           '11px',
           { lineHeight: '16px', fontWeight: '600', letterSpacing: '0.04em' },
@@ -48,6 +59,7 @@ module.exports = {
       boxShadow: {
         'overlay-sm': '0 2px 8px rgba(42, 32, 24, 0.14)',
         'overlay-lg': '0 12px 32px rgba(42, 32, 24, 0.22)',
+        'brand-halo': '0 0 0 4px rgba(244, 162, 26, 0.24)',
       },
     },
   },

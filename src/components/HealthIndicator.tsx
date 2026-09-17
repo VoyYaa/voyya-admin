@@ -1,22 +1,8 @@
-import { useCallback, useEffect, useState, type JSX } from 'react';
-import { getHealth, type HealthResponse } from '../api/health.api';
-
-type HealthState =
-  { kind: 'loading' } | { kind: 'ok'; data: HealthResponse } | { kind: 'error'; message: string };
+import type { JSX } from 'react';
+import { useBackendHealth } from '../hooks/useBackendHealth';
 
 export function HealthIndicator(): JSX.Element {
-  const [state, setState] = useState<HealthState>({ kind: 'loading' });
-
-  const check = useCallback(() => {
-    setState({ kind: 'loading' });
-    getHealth()
-      .then((data) => setState({ kind: 'ok', data }))
-      .catch(() => setState({ kind: 'error', message: 'No se pudo contactar al backend.' }));
-  }, []);
-
-  useEffect(() => {
-    check();
-  }, [check]);
+  const state = useBackendHealth();
 
   const dotClass =
     state.kind === 'ok' ? 'bg-success' : state.kind === 'error' ? 'bg-danger' : 'bg-status-neutral';
@@ -34,7 +20,7 @@ export function HealthIndicator(): JSX.Element {
       <span className="max-w-[16rem] truncate">{label}</span>
       <button
         type="button"
-        onClick={check}
+        onClick={state.check}
         className="focus-ring shrink-0 rounded-sm px-1 text-small font-medium text-text hover:underline hover:decoration-amber hover:decoration-2 hover:underline-offset-2"
       >
         Revisar

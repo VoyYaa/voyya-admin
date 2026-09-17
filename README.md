@@ -52,6 +52,31 @@ cp .env.example .env.local     # ajusta VITE_API_URL
 pnpm dev                       # http://localhost:5173
 ```
 
+## Tipografía — Nunito vía Google Fonts (medida temporal)
+
+La identidad tipográfica de la consola es **Nunito** (`font-display`) + **Nunito Sans**
+(`font-body`) — la misma familia que ya usa `voyya-page`, ver
+`docs/VoyYa/ux/consola-web-sistema-visual.md` §4.1.
+
+La especificación de diseño pide autoalojarlas con `@fontsource-variable/nunito` y
+`@fontsource-variable/nunito-sans` (npm, sin depender de un CDN externo — coherente con que
+esta consola ya trata "sin conexión" como estado de primera clase). **Esa instalación falla hoy
+en este entorno** (`pnpm add` contra `registry.npmjs.org` responde
+`ERR_SSL_TLSV1_ALERT_ACCESS_DENIED`, un bloqueo de red de la máquina/entorno, no del paquete).
+
+Mientras ese acceso no esté disponible, `index.html` carga Nunito/Nunito Sans por `<link>` a
+Google Fonts (mismo patrón que `voyya-page/index.html`, pesos 700/800/900 para `font-display` y
+400/600/800 para `font-body`). Es una medida **temporal**, documentada a propósito para que no se
+lea como la decisión final:
+
+- [ ] Cuando el registro de npm sea accesible desde este entorno, instalar
+      `@fontsource-variable/nunito` y `@fontsource-variable/nunito-sans`, importarlas una sola vez en
+      `src/main.tsx` y retirar el `<link>` de Google Fonts de `index.html` (además de las etiquetas
+      `preconnect`). Ajustar `--font-display`/`--font-body` en `src/index.css` al nombre de familia
+      variable que exponga la versión instalada (`'Nunito Variable'`/`'Nunito Sans Variable'`).
+- La pila de reserva (`ui-rounded`, `Segoe UI`, `system-ui`) ya cubre el caso de que Google Fonts
+  no cargue (sin conexión, red lenta del municipio) — no hay texto invisible en ningún momento.
+
 ## Variables de entorno
 
 Vite solo expone al bundle del cliente las variables con prefijo `VITE_*` (build-time).

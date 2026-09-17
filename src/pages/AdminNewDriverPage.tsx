@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState, type JSX } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AdminErrorCode, CreateDriverDTO } from '@voyyaa/shared';
 import { createDriver } from '../api/admin-drivers.api';
 import { domainErrorCode, isNetworkError } from '../api/errors';
@@ -98,7 +98,16 @@ export function AdminNewDriverPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
-      <h1 className="mb-6 text-display font-display text-text">Nuevo conductor</h1>
+      <p className="mb-1 text-eyebrow uppercase text-amber-ink dark:text-amber">Flota</p>
+      <div className="mb-6 flex items-baseline justify-between">
+        <h1 className="text-display font-display text-text">Nuevo conductor</h1>
+        <Link
+          to="/ops/drivers"
+          className="focus-ring rounded-sm text-small font-medium text-text-muted hover:text-text"
+        >
+          ← Volver a Conductores
+        </Link>
+      </div>
 
       {!online && (
         <p

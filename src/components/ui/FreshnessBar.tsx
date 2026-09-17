@@ -6,6 +6,7 @@ export type FreshnessState = 'live' | 'reconnecting' | 'offline' | 'stale';
 export interface FreshnessBarProps {
   state: FreshnessState;
   lastUpdatedAtMs?: number | null;
+  variant?: 'surface' | 'frame';
 }
 
 const STATE_DOT_CLASS: Record<FreshnessState, string> = {
@@ -30,9 +31,20 @@ function buildVisibleLabel(state: FreshnessState, lastUpdatedAtMs?: number | nul
   return `Actualizado ${formatRelativeMinutes(elapsed)}`;
 }
 
-export function FreshnessBar({ state, lastUpdatedAtMs }: FreshnessBarProps): JSX.Element {
+const VARIANT_CLASS: Record<'surface' | 'frame', string> = {
+  surface: 'border-border bg-surface text-text-muted',
+  frame: 'border-frame-chip-border bg-frame-chip-bg text-frame-text-muted',
+};
+
+export function FreshnessBar({
+  state,
+  lastUpdatedAtMs,
+  variant = 'surface',
+}: FreshnessBarProps): JSX.Element {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-small text-text-muted">
+    <span
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-small ${VARIANT_CLASS[variant]}`}
+    >
       <span
         className={`h-2 w-2 shrink-0 rounded-full transition-colors duration-300 motion-reduce:transition-none ${STATE_DOT_CLASS[state]}`}
         aria-hidden="true"

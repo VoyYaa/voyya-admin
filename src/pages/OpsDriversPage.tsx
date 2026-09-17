@@ -80,7 +80,10 @@ export function OpsDriversPage(): JSX.Element {
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-6 py-3">
-        <h1 className="text-display font-display text-text">Conductores</h1>
+        <div>
+          <p className="text-eyebrow uppercase text-amber-ink dark:text-amber">Flota</p>
+          <h1 className="text-display font-display text-text">Conductores</h1>
+        </div>
         <input
           type="search"
           value={searchInput}
