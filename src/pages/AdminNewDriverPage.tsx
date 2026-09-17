@@ -110,96 +110,98 @@ export function AdminNewDriverPage(): JSX.Element {
       )}
 
       <form onSubmit={onSubmit} noValidate className="space-y-8 pb-24">
-        <fieldset disabled={isSubmitting} className="space-y-4">
-          <legend className="mb-2 text-title font-display text-text">Datos personales</legend>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Nombres" htmlFor="first_name" error={errors.first_name?.message}>
-              <input
-                id="first_name"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
-                {...register('first_name')}
-              />
-            </Field>
-            <Field label="Apellidos" htmlFor="last_name" error={errors.last_name?.message}>
-              <input
-                id="last_name"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
-                {...register('last_name')}
-              />
-            </Field>
-            <Field label="Cédula" htmlFor="national_id" error={errors.national_id?.message}>
-              <input
-                id="national_id"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
-                {...register('national_id')}
-              />
-            </Field>
-            <Field label="Teléfono" htmlFor="phone" error={errors.phone?.message}>
-              <input
-                id="phone"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
-                {...register('phone')}
-              />
-            </Field>
-            <Field label="Correo (opcional)" htmlFor="email" error={errors.email?.message}>
-              <input
-                id="email"
-                type="email"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
-                {...register('email', {
-                  setValueAs: (value: string) => (value === '' ? undefined : value),
-                })}
-              />
-            </Field>
-            <Field label="Licencia (opcional)" htmlFor="license" error={errors.license?.message}>
-              <input
-                id="license"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
-                {...register('license', {
-                  setValueAs: (value: string) => (value === '' ? undefined : value),
-                })}
-              />
-            </Field>
-          </div>
-        </fieldset>
-
-        <fieldset disabled={isSubmitting} className="space-y-4">
-          <legend className="mb-2 text-title font-display text-text">Vehículo</legend>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Placa" htmlFor="vehicle.plate" error={errors.vehicle?.plate?.message}>
-              <input
-                id="vehicle.plate"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-numeric uppercase text-text outline-none"
-                {...register('vehicle.plate')}
-              />
-            </Field>
-            <Field label="Modelo" htmlFor="vehicle.model" error={errors.vehicle?.model?.message}>
-              <input
-                id="vehicle.model"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
-                {...register('vehicle.model')}
-              />
-            </Field>
-            <Field
-              label="Año (opcional)"
-              htmlFor="vehicle.year"
-              error={errors.vehicle?.year?.message}
-            >
-              <input
-                id="vehicle.year"
-                type="number"
-                className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
-                {...register('vehicle.year', {
-                  setValueAs: (value: string) => (value === '' ? undefined : Number(value)),
-                })}
-              />
-            </Field>
-            <div>
-              <p className="mb-1 block text-body font-medium text-text">Tipo de servicio</p>
-              <p className="text-body text-text-muted">Taxi</p>
+        <div className="space-y-8 rounded-md border border-border bg-surface p-6">
+          <fieldset disabled={isSubmitting} className="space-y-4">
+            <legend className="mb-2 text-title font-display text-text">Datos personales</legend>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="Nombres" htmlFor="first_name" error={errors.first_name?.message}>
+                <input
+                  id="first_name"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
+                  {...register('first_name')}
+                />
+              </Field>
+              <Field label="Apellidos" htmlFor="last_name" error={errors.last_name?.message}>
+                <input
+                  id="last_name"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
+                  {...register('last_name')}
+                />
+              </Field>
+              <Field label="Cédula" htmlFor="national_id" error={errors.national_id?.message}>
+                <input
+                  id="national_id"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+                  {...register('national_id')}
+                />
+              </Field>
+              <Field label="Teléfono" htmlFor="phone" error={errors.phone?.message}>
+                <input
+                  id="phone"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+                  {...register('phone')}
+                />
+              </Field>
+              <Field label="Correo (opcional)" htmlFor="email" error={errors.email?.message}>
+                <input
+                  id="email"
+                  type="email"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
+                  {...register('email', {
+                    setValueAs: (value: string) => (value === '' ? undefined : value),
+                  })}
+                />
+              </Field>
+              <Field label="Licencia (opcional)" htmlFor="license" error={errors.license?.message}>
+                <input
+                  id="license"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
+                  {...register('license', {
+                    setValueAs: (value: string) => (value === '' ? undefined : value),
+                  })}
+                />
+              </Field>
             </div>
-          </div>
-        </fieldset>
+          </fieldset>
+
+          <fieldset disabled={isSubmitting} className="space-y-4">
+            <legend className="mb-2 text-title font-display text-text">Vehículo</legend>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="Placa" htmlFor="vehicle.plate" error={errors.vehicle?.plate?.message}>
+                <input
+                  id="vehicle.plate"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-numeric uppercase text-text outline-none"
+                  {...register('vehicle.plate')}
+                />
+              </Field>
+              <Field label="Modelo" htmlFor="vehicle.model" error={errors.vehicle?.model?.message}>
+                <input
+                  id="vehicle.model"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
+                  {...register('vehicle.model')}
+                />
+              </Field>
+              <Field
+                label="Año (opcional)"
+                htmlFor="vehicle.year"
+                error={errors.vehicle?.year?.message}
+              >
+                <input
+                  id="vehicle.year"
+                  type="number"
+                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+                  {...register('vehicle.year', {
+                    setValueAs: (value: string) => (value === '' ? undefined : Number(value)),
+                  })}
+                />
+              </Field>
+              <div>
+                <p className="mb-1 block text-body font-medium text-text">Tipo de servicio</p>
+                <p className="text-body text-text-muted">Taxi</p>
+              </div>
+            </div>
+          </fieldset>
+        </div>
 
         {serverError && (
           <p role="alert" className="rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink">

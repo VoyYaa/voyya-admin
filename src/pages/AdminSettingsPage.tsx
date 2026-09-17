@@ -114,13 +114,15 @@ export function AdminSettingsPage(): JSX.Element {
 
   if (status === 'loading' && !data) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6 px-6 py-8">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-24 animate-pulse rounded-xs bg-bg-shell motion-reduce:animate-none"
-          />
-        ))}
+      <div className="mx-auto max-w-2xl px-6 py-8">
+        <div className="space-y-6 rounded-md border border-border bg-surface p-6">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-24 animate-pulse rounded-xs bg-bg-shell motion-reduce:animate-none"
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -172,100 +174,102 @@ export function AdminSettingsPage(): JSX.Element {
         </p>
       )}
 
-      <section className="mb-8 border-b border-border pb-6">
-        <h2 className="mb-3 text-title font-display text-text">Tarifa base</h2>
-        <SettingsRow
-          label={FIELD_LABELS.base_fare}
-          dirty={dirtyFields.includes('base_fare')}
-          error={fieldError?.field === 'base_fare' ? fieldError.message : undefined}
-        >
-          <input
-            type="number"
-            step={500}
-            min={1}
-            max={1_000_000}
-            value={draft.base_fare}
-            onChange={(event) => setField('base_fare', Number(event.target.value))}
-            className="focus-ring w-40 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
-          />
-        </SettingsRow>
-      </section>
+      <div className="rounded-md border border-border bg-surface p-6">
+        <section className="mb-8 border-b border-border pb-6">
+          <h2 className="mb-3 text-title font-display text-text">Tarifa base</h2>
+          <SettingsRow
+            label={FIELD_LABELS.base_fare}
+            dirty={dirtyFields.includes('base_fare')}
+            error={fieldError?.field === 'base_fare' ? fieldError.message : undefined}
+          >
+            <input
+              type="number"
+              step={500}
+              min={1}
+              max={1_000_000}
+              value={draft.base_fare}
+              onChange={(event) => setField('base_fare', Number(event.target.value))}
+              className="focus-ring w-40 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+            />
+          </SettingsRow>
+        </section>
 
-      <section className="mb-8 border-b border-border pb-6">
-        <h2 className="mb-3 text-title font-display text-text">Recargos</h2>
-        <SettingsRow
-          label={FIELD_LABELS.night_surcharge_pct}
-          helper="9pm–5am"
-          dirty={dirtyFields.includes('night_surcharge_pct')}
-          error={fieldError?.field === 'night_surcharge_pct' ? fieldError.message : undefined}
-        >
-          <input
-            type="number"
-            step={0.01}
-            min={0}
-            max={100}
-            value={draft.night_surcharge_pct}
-            onChange={(event) => setField('night_surcharge_pct', Number(event.target.value))}
-            className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
-          />
-        </SettingsRow>
-        <SettingsRow
-          label={FIELD_LABELS.holiday_surcharge_pct}
-          helper="Domingos y festivos"
-          dirty={dirtyFields.includes('holiday_surcharge_pct')}
-          error={fieldError?.field === 'holiday_surcharge_pct' ? fieldError.message : undefined}
-        >
-          <input
-            type="number"
-            step={0.01}
-            min={0}
-            max={100}
-            value={draft.holiday_surcharge_pct}
-            onChange={(event) => setField('holiday_surcharge_pct', Number(event.target.value))}
-            className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
-          />
-        </SettingsRow>
-      </section>
+        <section className="mb-8 border-b border-border pb-6">
+          <h2 className="mb-3 text-title font-display text-text">Recargos</h2>
+          <SettingsRow
+            label={FIELD_LABELS.night_surcharge_pct}
+            helper="9pm–5am"
+            dirty={dirtyFields.includes('night_surcharge_pct')}
+            error={fieldError?.field === 'night_surcharge_pct' ? fieldError.message : undefined}
+          >
+            <input
+              type="number"
+              step={0.01}
+              min={0}
+              max={100}
+              value={draft.night_surcharge_pct}
+              onChange={(event) => setField('night_surcharge_pct', Number(event.target.value))}
+              className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+            />
+          </SettingsRow>
+          <SettingsRow
+            label={FIELD_LABELS.holiday_surcharge_pct}
+            helper="Domingos y festivos"
+            dirty={dirtyFields.includes('holiday_surcharge_pct')}
+            error={fieldError?.field === 'holiday_surcharge_pct' ? fieldError.message : undefined}
+          >
+            <input
+              type="number"
+              step={0.01}
+              min={0}
+              max={100}
+              value={draft.holiday_surcharge_pct}
+              onChange={(event) => setField('holiday_surcharge_pct', Number(event.target.value))}
+              className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+            />
+          </SettingsRow>
+        </section>
 
-      <section className="mb-8 border-b border-border pb-6">
-        <h2 className="mb-3 text-title font-display text-text">Comisión por viaje</h2>
-        <p className="text-numeric text-title text-text">{data.commission_pct}%</p>
-        <p className="text-small text-text-muted">No editable en este ciclo.</p>
-      </section>
+        <section className="mb-8 border-b border-border pb-6">
+          <h2 className="mb-3 text-title font-display text-text">Comisión por viaje</h2>
+          <p className="text-numeric text-title text-text">{data.commission_pct}%</p>
+          <p className="text-small text-text-muted">No editable en este ciclo.</p>
+        </section>
 
-      <section className="mb-8">
-        <h2 className="mb-3 text-title font-display text-text">Parámetros de asignación</h2>
-        <SettingsRow
-          label={FIELD_LABELS.search_radius_km}
-          dirty={dirtyFields.includes('search_radius_km')}
-          error={fieldError?.field === 'search_radius_km' ? fieldError.message : undefined}
-        >
-          <input
-            type="number"
-            step={0.1}
-            min={0.1}
-            max={50}
-            value={draft.search_radius_km}
-            onChange={(event) => setField('search_radius_km', Number(event.target.value))}
-            className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
-          />
-        </SettingsRow>
-        <SettingsRow
-          label={FIELD_LABELS.acceptance_timeout_sec}
-          dirty={dirtyFields.includes('acceptance_timeout_sec')}
-          error={fieldError?.field === 'acceptance_timeout_sec' ? fieldError.message : undefined}
-        >
-          <input
-            type="number"
-            step={1}
-            min={5}
-            max={120}
-            value={draft.acceptance_timeout_sec}
-            onChange={(event) => setField('acceptance_timeout_sec', Number(event.target.value))}
-            className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
-          />
-        </SettingsRow>
-      </section>
+        <section className="mb-8">
+          <h2 className="mb-3 text-title font-display text-text">Parámetros de asignación</h2>
+          <SettingsRow
+            label={FIELD_LABELS.search_radius_km}
+            dirty={dirtyFields.includes('search_radius_km')}
+            error={fieldError?.field === 'search_radius_km' ? fieldError.message : undefined}
+          >
+            <input
+              type="number"
+              step={0.1}
+              min={0.1}
+              max={50}
+              value={draft.search_radius_km}
+              onChange={(event) => setField('search_radius_km', Number(event.target.value))}
+              className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+            />
+          </SettingsRow>
+          <SettingsRow
+            label={FIELD_LABELS.acceptance_timeout_sec}
+            dirty={dirtyFields.includes('acceptance_timeout_sec')}
+            error={fieldError?.field === 'acceptance_timeout_sec' ? fieldError.message : undefined}
+          >
+            <input
+              type="number"
+              step={1}
+              min={5}
+              max={120}
+              value={draft.acceptance_timeout_sec}
+              onChange={(event) => setField('acceptance_timeout_sec', Number(event.target.value))}
+              className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+            />
+          </SettingsRow>
+        </section>
+      </div>
 
       <div className="fixed inset-x-0 bottom-0 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
         <button

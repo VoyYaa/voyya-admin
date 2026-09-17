@@ -23,6 +23,20 @@ import {
   type StatusTone,
 } from '../lib/status-maps';
 
+function QueueColGroup(): JSX.Element {
+  return (
+    <colgroup>
+      <col style={{ width: '9%' }} />
+      <col style={{ width: '15%' }} />
+      <col style={{ width: '32%' }} />
+      <col style={{ width: '17%' }} />
+      <col style={{ width: '15%' }} />
+      <col style={{ width: '8%' }} />
+      <col style={{ width: '4%' }} />
+    </colgroup>
+  );
+}
+
 const FILTER_OPTIONS: OpsQueueStatusFilter[] = [
   'all',
   'pending',
@@ -98,9 +112,12 @@ export function OpsQueuePage(): JSX.Element {
         <FreshnessBar state={freshness} lastUpdatedAtMs={lastSuccessAt} />
       </div>
 
-      <div className={`flex-1 overflow-y-auto ${freshness === 'offline' ? 'opacity-85' : ''}`}>
+      <div
+        className={`flex-1 overflow-y-auto bg-surface ${freshness === 'offline' ? 'opacity-85' : ''}`}
+      >
         {isInitialLoading ? (
-          <table className="w-full border-collapse">
+          <table className="w-full table-fixed border-collapse">
+            <QueueColGroup />
             <tbody>
               <SkeletonRows columnCount={7} />
             </tbody>
@@ -113,10 +130,14 @@ export function OpsQueuePage(): JSX.Element {
             description="Te avisaremos apenas entre una nueva solicitud."
           />
         ) : (
-          <table className="w-full border-collapse">
+          <table className="w-full table-fixed border-collapse">
+            <QueueColGroup />
             <thead className="sticky top-0 z-10 bg-surface-sunken">
               <tr>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th
+                  scope="col"
+                  className="border-l-[3px] border-l-transparent py-2 pl-[13px] pr-4 text-right text-table-header text-text-muted"
+                >
                   Hora
                 </th>
                 <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
@@ -131,7 +152,7 @@ export function OpsQueuePage(): JSX.Element {
                 <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
                   Conductor
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className="px-4 py-2 text-right text-table-header text-text-muted">
                   Tiempo en estado
                 </th>
                 <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
@@ -170,6 +191,13 @@ const FLASH_BG_CLASS: Record<StatusTone, string> = {
   neutral: 'bg-status-neutral',
 };
 
+const RAIL_BORDER_CLASS: Record<StatusTone, string> = {
+  success: 'border-l-success',
+  brand: 'border-l-amber',
+  danger: 'border-l-danger',
+  neutral: 'border-l-status-neutral',
+};
+
 interface QueueRowProps {
   row: OpsQueueRow;
   skewMs: number;
@@ -185,15 +213,19 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
   return (
     <tr
       className={`h-row-md border-b border-border transition-colors duration-300 motion-reduce:transition-none ${
-        isFlashing ? FLASH_BG_CLASS[tone] : ''
+        isFlashing ? FLASH_BG_CLASS[tone] : 'hover:bg-bg-shell'
       }`}
     >
-      <td className="whitespace-nowrap px-4 py-2 text-numeric text-body text-text">
+      <td
+        className={`whitespace-nowrap border-l-[3px] py-2 pl-[13px] pr-4 text-right text-numeric text-body text-text ${RAIL_BORDER_CLASS[tone]}`}
+      >
         {formatClockTime(row.requested_at)}
       </td>
-      <td className="px-4 py-2 text-body text-text">{row.passenger_name}</td>
-      <td className="max-w-[280px] truncate px-4 py-2 text-body text-text" title={routeLabel}>
-        {routeLabel}
+      <td className="px-4 py-2 text-body font-medium text-text">{row.passenger_name}</td>
+      <td className="truncate px-4 py-2 text-body text-text" title={routeLabel}>
+        <span>{row.pickup_address}</span>
+        <span className="text-text-muted"> → </span>
+        <span>{row.dropoff_address}</span>
       </td>
       <td className="px-4 py-2">
         <StatusDot tone={tone} label={TRIP_STATUS_LABELS[row.status]} />
@@ -201,16 +233,17 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
       <td className="px-4 py-2 text-body text-text">
         {row.driver ? `${row.driver.name} · ${row.driver.plate}` : '—'}
       </td>
-      <td className="whitespace-nowrap px-4 py-2 text-numeric text-body text-text">
+      <td className="whitespace-nowrap px-4 py-2 text-right text-numeric text-body text-text">
         {formatDurationMmSs(elapsed)}
       </td>
       <td className="px-4 py-2 text-right">
         <button
           type="button"
           onClick={onView}
+          aria-label={`Ver detalle de la solicitud de ${row.passenger_name}`}
           className="focus-ring rounded-sm px-2 py-1 text-small font-medium text-text hover:bg-bg-shell"
         >
-          Ver detalle de la solicitud de {row.passenger_name}
+          Ver
         </button>
       </td>
     </tr>

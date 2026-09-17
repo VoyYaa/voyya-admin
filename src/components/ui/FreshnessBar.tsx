@@ -34,7 +34,7 @@ export function FreshnessBar({ state, lastUpdatedAtMs }: FreshnessBarProps): JSX
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-small text-text-muted">
       <span
-        className={`h-2 w-2 shrink-0 rounded-full ${STATE_DOT_CLASS[state]}`}
+        className={`h-2 w-2 shrink-0 rounded-full transition-colors duration-300 motion-reduce:transition-none ${STATE_DOT_CLASS[state]}`}
         aria-hidden="true"
       />
       <span aria-hidden="true">{buildVisibleLabel(state, lastUpdatedAtMs)}</span>

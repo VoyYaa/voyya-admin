@@ -35,7 +35,7 @@ export function HealthIndicator(): JSX.Element {
       <button
         type="button"
         onClick={check}
-        className="focus-ring shrink-0 rounded-sm px-1 text-small font-medium text-text hover:text-amber-deep"
+        className="focus-ring shrink-0 rounded-sm px-1 text-small font-medium text-text hover:underline hover:decoration-amber hover:decoration-2 hover:underline-offset-2"
       >
         Revisar
       </button>

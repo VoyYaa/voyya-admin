@@ -15,9 +15,28 @@ import { EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStat
 import { useAsync } from '../hooks/useAsync';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
-import { DRIVER_STATUS_LABELS, DRIVER_STATUS_TONES } from '../lib/status-maps';
+import { DRIVER_STATUS_LABELS, DRIVER_STATUS_TONES, type StatusTone } from '../lib/status-maps';
 import { computeSkewMs, elapsedMsSince, formatRelativeMinutes } from '../lib/time';
 import { useSessionStore } from '../state/session-store';
+
+function DriversColGroup(): JSX.Element {
+  return (
+    <colgroup>
+      <col style={{ width: '28%' }} />
+      <col style={{ width: '20%' }} />
+      <col style={{ width: '20%' }} />
+      <col style={{ width: '26%' }} />
+      <col style={{ width: '6%' }} />
+    </colgroup>
+  );
+}
+
+const RAIL_BORDER_CLASS: Record<StatusTone, string> = {
+  success: 'border-l-success',
+  brand: 'border-l-amber',
+  danger: 'border-l-danger',
+  neutral: 'border-l-status-neutral',
+};
 
 const STATUS_OPTIONS: DriverStatus[] = [
   'available',
@@ -107,9 +126,10 @@ export function OpsDriversPage(): JSX.Element {
         <FreshnessBar state={online ? 'stale' : 'offline'} lastUpdatedAtMs={lastLoadedAt} />
       </div>
 
-      <div className={`flex-1 overflow-y-auto ${!online ? 'opacity-85' : ''}`}>
+      <div className={`flex-1 overflow-y-auto bg-surface ${!online ? 'opacity-85' : ''}`}>
         {status === 'loading' && !data ? (
-          <table className="w-full border-collapse">
+          <table className="w-full table-fixed border-collapse">
+            <DriversColGroup />
             <tbody>
               <SkeletonRows columnCount={5} />
             </tbody>
@@ -134,10 +154,14 @@ export function OpsDriversPage(): JSX.Element {
             />
           )
         ) : (
-          <table className="w-full border-collapse">
+          <table className="w-full table-fixed border-collapse">
+            <DriversColGroup />
             <thead className="sticky top-0 z-10 bg-surface-sunken">
               <tr>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th
+                  scope="col"
+                  className="border-l-[3px] border-l-transparent py-2 pl-[13px] pr-4 text-left text-table-header text-text-muted"
+                >
                   Conductor
                 </th>
                 <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
@@ -185,9 +209,11 @@ interface DriverRowProps {
 
 function DriverRow({ row, skewMs, onView }: DriverRowProps): JSX.Element {
   return (
-    <tr className="h-row-md border-b border-border">
-      <td className="px-4 py-2">
-        <p className="text-body text-text">
+    <tr className="h-row-md border-b border-border transition-colors duration-300 hover:bg-bg-shell motion-reduce:transition-none">
+      <td
+        className={`border-l-[3px] py-2 pl-[13px] pr-4 ${RAIL_BORDER_CLASS[DRIVER_STATUS_TONES[row.status]]}`}
+      >
+        <p className="text-body font-medium text-text">
           {row.first_name} {row.last_name}
         </p>
         <p className="text-small text-text-muted">{row.national_id}</p>
@@ -215,9 +241,10 @@ function DriverRow({ row, skewMs, onView }: DriverRowProps): JSX.Element {
         <button
           type="button"
           onClick={onView}
+          aria-label={`Ver detalle de ${row.first_name} ${row.last_name}`}
           className="focus-ring rounded-sm px-2 py-1 text-small font-medium text-text hover:bg-bg-shell"
         >
-          Ver detalle de {row.first_name} {row.last_name}
+          Ver
         </button>
       </td>
     </tr>
@@ -326,7 +353,9 @@ function DriverDetailDrawer({
                     {resendState === 'sending' ? 'Reenviando…' : 'Reenviar PIN'}
                   </button>
                   {resendState === 'sent' && (
-                    <p className="mt-1 text-small text-success">PIN reenviado.</p>
+                    <p className="mt-1 text-small text-success-ink dark:text-success-ink-dark">
+                      PIN reenviado.
+                    </p>
                   )}
                   {resendState === 'error' && (
                     <p className="mt-1 text-small text-danger-ink dark:text-danger-ink-dark">

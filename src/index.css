@@ -44,3 +44,10 @@
     box-shadow: 0 0 0 6px var(--color-focus-halo);
   }
 }
+
+@layer utilities {
+  .text-numeric {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+}

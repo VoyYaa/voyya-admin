@@ -9,11 +9,14 @@ export interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps): JSX.Element {
   return (
-    <div className="flex min-h-screen bg-bg text-text">
-      <Sidebar />
-      <div className="flex min-h-screen flex-1 flex-col">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+    <div className="flex min-h-screen flex-col bg-bg text-text">
+      <div className="h-[3px] w-full shrink-0 bg-amber" aria-hidden="true" />
+      <div className="flex flex-1">
+        <Sidebar />
+        <div className="flex flex-1 flex-col">
+          <Topbar />
+          <main className="flex-1 overflow-y-auto">{children}</main>
+        </div>
       </div>
       <ToastViewport />
     </div>

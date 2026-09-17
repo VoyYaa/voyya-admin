@@ -29,7 +29,10 @@ export function Topbar(): JSX.Element {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-bg-shell px-6">
       <div className="flex items-center gap-3">
-        <span className="text-title font-display text-text">VoyYa</span>
+        <span className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-sm bg-amber" aria-hidden="true" />
+          <span className="text-title font-display font-bold tracking-tight text-text">VoyYa</span>
+        </span>
         <span className="text-small text-text-muted">Cootrayal · Yarumal</span>
       </div>
       <div className="flex items-center gap-4">

@@ -9,7 +9,7 @@ module.exports = {
         espresso: '#2A2018',
         crema: '#FBF6ED',
         go: '#12A46A',
-        success: { DEFAULT: '#12A46A', ink: { dark: '#22C285' } },
+        success: { DEFAULT: '#12A46A', ink: { DEFAULT: '#0C7048', dark: '#22C285' } },
         danger: {
           DEFAULT: '#D6503F',
           tint: '#F6DED4',
