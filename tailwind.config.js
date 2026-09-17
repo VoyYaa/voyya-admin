@@ -39,8 +39,13 @@ module.exports = {
         body: ['var(--font-body)', 'system-ui', 'sans-serif'],
       },
       fontSize: {
+        hero: [
+          'clamp(1.75rem, 1.3rem + 2vw, 2.75rem)',
+          { lineHeight: '1.15', fontWeight: '800', letterSpacing: '-0.02em' },
+        ],
         display: ['30px', { lineHeight: '36px', fontWeight: '800' }],
         title: ['18px', { lineHeight: '24px', fontWeight: '700' }],
+        lede: ['16px', { lineHeight: '26px', fontWeight: '400' }],
         eyebrow: ['11px', { lineHeight: '16px', fontWeight: '800', letterSpacing: '0.10em' }],
         btn: ['13px', { lineHeight: '20px', fontWeight: '700' }],
         body: ['13px', { lineHeight: '20px' }],
