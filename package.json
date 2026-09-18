@@ -5,8 +5,9 @@
   "description": "VoyYa Admin — consola web (Vite + React + TS) para operación: login admin/operador, salud del backend y panel base. Repo standalone, deploy en Vercel.",
   "type": "commonjs",
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
+  "packageManager": "pnpm@10.24.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
