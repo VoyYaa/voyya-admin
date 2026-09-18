@@ -36,16 +36,6 @@ export function saveSession(session: PersistedSession): void {
   window.localStorage.setItem(KEYS.accessTokenExpiresAt, String(session.accessTokenExpiresAt));
 }
 
-export function updatePersistedTokens(
-  accessToken: string,
-  refreshToken: string,
-  accessTokenExpiresAt: number,
-): void {
-  window.localStorage.setItem(KEYS.accessToken, accessToken);
-  window.localStorage.setItem(KEYS.refreshToken, refreshToken);
-  window.localStorage.setItem(KEYS.accessTokenExpiresAt, String(accessTokenExpiresAt));
-}
-
 export function clearPersistedSession(): void {
   window.localStorage.removeItem(KEYS.accessToken);
   window.localStorage.removeItem(KEYS.refreshToken);

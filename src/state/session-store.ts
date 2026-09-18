@@ -1,13 +1,8 @@
 import { create } from 'zustand';
-import type { SessionResponse, SessionTokens, SessionUser } from '@voyyaa/shared';
+import type { RefreshResponse, SessionResponse, SessionUser } from '@voyyaa/shared';
 import { configureAuthHandlers } from '../api/http-client';
 import { refreshSession } from '../api/auth.api';
-import {
-  clearPersistedSession,
-  readPersistedSession,
-  saveSession,
-  updatePersistedTokens,
-} from '../lib/local-storage';
+import { clearPersistedSession, readPersistedSession, saveSession } from '../lib/local-storage';
 
 export type SessionStatus = 'hydrating' | 'authenticated' | 'guest';
 
@@ -20,7 +15,7 @@ interface SessionState {
 
   hydrate: () => void;
   setSession: (response: SessionResponse) => void;
-  setTokens: (tokens: SessionTokens) => void;
+  setTokens: (response: RefreshResponse) => void;
   clearSession: () => void;
 }
 
@@ -67,13 +62,19 @@ export const useSessionStore = create<SessionState>((set) => ({
     });
   },
 
-  setTokens: (tokens) => {
-    const accessTokenExpiresAt = calculateExpiresAt(tokens.expires_in);
-    updatePersistedTokens(tokens.access_token, tokens.refresh_token, accessTokenExpiresAt);
+  setTokens: (response) => {
+    const accessTokenExpiresAt = calculateExpiresAt(response.expires_in);
+    saveSession({
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      user: response.user,
+      accessTokenExpiresAt,
+    });
     set({
       status: 'authenticated',
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      user: response.user,
       accessTokenExpiresAt,
     });
   },

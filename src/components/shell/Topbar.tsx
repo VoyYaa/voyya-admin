@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
 import { useSessionStore } from '../../state/session-store';
 import { FreshnessBar } from '../ui/FreshnessBar';
+import { TenantBadge } from './TenantBadge';
 import { UserMenu } from './UserMenu';
 
 export function Topbar(): JSX.Element {
@@ -20,8 +21,7 @@ export function Topbar(): JSX.Element {
             VoyYa
           </span>
         </a>
-        <span className="h-5 w-px bg-frame-border" aria-hidden="true" />
-        <span className="text-small text-frame-text-muted">Cootrayal · Yarumal</span>
+        <TenantBadge tenant={user?.tenant ?? null} />
       </div>
       <div className="flex items-center gap-4">
         <FreshnessBar state={online ? 'live' : 'offline'} variant="frame" />

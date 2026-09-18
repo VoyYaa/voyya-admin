@@ -31,5 +31,19 @@ module.exports = {
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'Literal[value=/cootrayal|yarumal/i]',
+        message:
+          'El nombre del tenant llega en SessionUser.tenant (ADR-012 §8.2); no se escribe en el código.',
+      },
+      {
+        selector: 'JSXText[value=/cootrayal|yarumal/i]',
+        message:
+          'El nombre del tenant llega en SessionUser.tenant (ADR-012 §8.2); no se escribe en el código.',
+      },
+    ],
   },
 };

@@ -5,15 +5,9 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { AdminLoginDTO } from '@voyyaa/shared';
 import { loginAdmin } from '../api/auth.api';
 import { ApiError, domainErrorCode, isNetworkError } from '../api/errors';
+import { AUTH_ERROR_MESSAGES, LOGIN_COPY } from '../copy/auth';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
 import { useSessionStore } from '../state/session-store';
-
-const ERROR_MESSAGES: Record<string, string> = {
-  INVALID_CREDENTIALS: 'Correo o contraseña incorrectos.',
-  ACCOUNT_SUSPENDED: 'Esta cuenta está suspendida. Contacta a tu administrador de Cootrayal.',
-  STAFF_WITHOUT_COMPANY:
-    'Tu usuario no está vinculado a ninguna empresa. Contacta a tu administrador de Cootrayal.',
-};
 
 type LoginErrorState =
   | { kind: 'none' }
@@ -83,7 +77,8 @@ export function LoginPage(): JSX.Element {
         const code = domainErrorCode(error);
         setErrorState({
           kind: 'message',
-          text: (code && ERROR_MESSAGES[code]) ?? 'No se pudo iniciar sesión. Inténtalo de nuevo.',
+          text:
+            (code && AUTH_ERROR_MESSAGES[code]) ?? 'No se pudo iniciar sesión. Inténtalo de nuevo.',
         });
       }
       setValue('password', '');
@@ -103,16 +98,12 @@ export function LoginPage(): JSX.Element {
         <span className="text-title font-display font-black tracking-tight text-frame-text">
           VoyYa
         </span>
-        <span className="hidden h-5 w-px bg-frame-border sm:inline-block" aria-hidden="true" />
-        <span className="hidden text-small text-frame-text-muted sm:inline">
-          Cootrayal · Yarumal
-        </span>
       </header>
 
       <main className="flex-1 px-6 py-14 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="mx-auto grid w-full max-w-6xl gap-y-12 md:grid-cols-2 md:items-start md:gap-x-8 md:gap-y-0">
           <div className="flex max-w-xl flex-col gap-5">
-            <p className="text-eyebrow text-amber-ink dark:text-amber">Cootrayal · Yarumal</p>
+            <p className="text-eyebrow text-amber-ink dark:text-amber">{LOGIN_COPY.eyebrow}</p>
             <h1 className="text-hero font-display text-text">
               La cola de viajes, los conductores
               <br />
@@ -120,9 +111,7 @@ export function LoginPage(): JSX.Element {
                 y las tarifas en una sola pantalla.
               </span>
             </h1>
-            <p className="max-w-[42ch] text-lede text-text-muted">
-              Ingresa con el correo y la contraseña que te dio Cootrayal para entrar a la consola.
-            </p>
+            <p className="max-w-[42ch] text-lede text-text-muted">{LOGIN_COPY.lede}</p>
           </div>
 
           <div className="w-full max-w-sm border-t border-border pt-8 md:border-l md:border-t-0 md:pl-8 md:pt-0">
@@ -228,9 +217,7 @@ export function LoginPage(): JSX.Element {
               </button>
             </form>
 
-            <p className="mt-6 text-small text-text-muted">
-              ¿No puedes entrar? Contacta a tu administrador de Cootrayal.
-            </p>
+            <p className="mt-6 text-small text-text-muted">{LOGIN_COPY.help}</p>
           </div>
         </div>
       </main>
