@@ -8,6 +8,7 @@ export class ApiError extends Error {
     public readonly code?: string,
     public readonly retryInSec?: number,
     public readonly field?: string,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -24,4 +25,10 @@ export function domainErrorCode(error: unknown): string | undefined {
 
 export function domainErrorField(error: unknown): string | undefined {
   return error instanceof ApiError && error.kind === 'http' ? error.field : undefined;
+}
+
+export function domainErrorDetails<T>(error: unknown): T | undefined {
+  return error instanceof ApiError && error.kind === 'http'
+    ? (error.details as T | undefined)
+    : undefined;
 }

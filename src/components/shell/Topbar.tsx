@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
+import { resolveHomePath } from '../../lib/routes';
 import { useSessionStore } from '../../state/session-store';
 import { FreshnessBar } from '../ui/FreshnessBar';
 import { TenantBadge } from './TenantBadge';
@@ -12,7 +13,10 @@ export function Topbar(): JSX.Element {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b-2 border-b-amber bg-frame-bg px-6">
       <div className="flex items-center gap-3">
-        <a href="/ops/queue" className="focus-ring flex items-center gap-2.5 rounded-sm">
+        <a
+          href={resolveHomePath(user?.role)}
+          className="focus-ring flex items-center gap-2.5 rounded-sm"
+        >
           <span
             className="relative inline-flex h-3 w-3 shrink-0 rounded-full bg-amber shadow-brand-halo"
             aria-hidden="true"

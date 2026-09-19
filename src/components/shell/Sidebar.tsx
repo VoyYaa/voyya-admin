@@ -1,5 +1,8 @@
-import type { JSX, ReactNode } from 'react';
+import { useCallback, type JSX, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
+import { OPS_LIST_DEFAULT_LIMIT } from '@voyyaa/shared';
+import { getPlatformCompanies } from '../../api/platform-companies.api';
+import { useAsync } from '../../hooks/useAsync';
 import { useSessionStore } from '../../state/session-store';
 
 function QueueIcon({ className }: { className?: string }): JSX.Element {
@@ -65,6 +68,22 @@ function SettingsIcon({ className }: { className?: string }): JSX.Element {
   );
 }
 
+function CompaniesIcon({ className }: { className?: string }): JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 18 18"
+      width="18"
+      height="18"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="3" y="5" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M6.5 5V3.5h5V5" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 function PlusIcon({ className }: { className?: string }): JSX.Element {
   return (
     <svg
@@ -124,9 +143,57 @@ function NavItemLink({ item }: { item: NavItem }): JSX.Element {
   );
 }
 
+function PlatformCompaniesNavLink(): JSX.Element {
+  const fetcher = useCallback(
+    () => getPlatformCompanies({ status: 'pending', limit: OPS_LIST_DEFAULT_LIMIT }),
+    [],
+  );
+  const { data } = useAsync(fetcher);
+  const pendingCount = data?.pending_count ?? 0;
+
+  return (
+    <NavLink
+      to="/platform/companies"
+      className={({ isActive }) =>
+        `focus-ring flex items-center gap-2.5 rounded-sm border-l-[3px] px-3 py-2 text-body transition-colors motion-reduce:transition-none ${
+          isActive
+            ? 'border-l-amber bg-frame-active-bg font-semibold text-frame-text'
+            : 'border-l-transparent text-frame-text-muted hover:bg-frame-chip-bg hover:text-frame-text'
+        }`
+      }
+    >
+      {({ isActive }: { isActive: boolean }) => (
+        <>
+          <CompaniesIcon className={isActive ? 'text-amber' : 'text-frame-text-muted'} />
+          Empresas
+          {pendingCount > 0 && (
+            <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-[11px] font-bold text-on-brand">
+              {pendingCount}
+            </span>
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 export function Sidebar(): JSX.Element {
   const role = useSessionStore((s) => s.user?.role);
   const isAdmin = role === 'admin';
+  const isPlatformAdmin = role === 'platform_admin';
+
+  if (isPlatformAdmin) {
+    return (
+      <nav
+        aria-label="Navegación principal"
+        className="flex w-[224px] shrink-0 flex-col gap-1 border-r-2 border-r-amber bg-frame-bg px-2 py-2"
+      >
+        <NavGroup label="Plataforma">
+          <PlatformCompaniesNavLink />
+        </NavGroup>
+      </nav>
+    );
+  }
 
   return (
     <nav

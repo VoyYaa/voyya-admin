@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { resolveHomePath } from '../lib/routes';
 import { useSessionStore } from '../state/session-store';
 
 export function RouteGuard(): JSX.Element {
@@ -25,6 +26,26 @@ export function AdminOnlyGuard(): JSX.Element {
 
   if (role !== 'admin') {
     return <Navigate to="/ops/queue" replace />;
+  }
+
+  return <Outlet />;
+}
+
+export function TenantOnlyGuard(): JSX.Element {
+  const role = useSessionStore((s) => s.user?.role);
+
+  if (role === 'platform_admin') {
+    return <Navigate to="/platform/companies" replace />;
+  }
+
+  return <Outlet />;
+}
+
+export function PlatformOnlyGuard(): JSX.Element {
+  const role = useSessionStore((s) => s.user?.role);
+
+  if (role !== 'platform_admin') {
+    return <Navigate to={resolveHomePath(role)} replace />;
   }
 
   return <Outlet />;

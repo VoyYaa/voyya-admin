@@ -3,34 +3,38 @@
 @tailwind utilities;
 
 :root {
-  --color-bg: #fbf6ed;
-  --color-bg-shell: #f2e9d6;
+  --color-bg: #fbf7ef;
+  --color-bg-shell: #f2ead8;
   --color-surface: #ffffff;
   --color-surface-sunken: #f6f1e6;
-  --color-border: #eadfc9;
-  --color-text: #2a2018;
-  --color-text-muted: rgba(42, 32, 24, 0.7);
-  --color-on-brand: #2a2018;
-  --color-focus-ring: #2a2018;
-  --color-focus-halo: rgba(244, 162, 26, 0.35);
-  --color-status-neutral: rgba(42, 32, 24, 0.35);
-  --font-display: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system,
-    sans-serif;
-  --font-body: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --color-border: #e3daca;
+  --color-border-input: #cdc2ac;
+  --color-text: #171512;
+  --color-text-muted: #57534a;
+  --color-text-subtle: #6b6558;
+  --color-on-brand: #171512;
+  --color-focus-ring: #171512;
+  --color-focus-halo: rgba(245, 184, 0, 0.35);
+  --color-status-neutral: rgba(23, 21, 18, 0.35);
+  --font-display: 'Bricolage Grotesque', Georgia, serif;
+  --font-body: 'Instrument Sans', 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 }
 
 .dark {
-  --color-bg: #1c140d;
-  --color-bg-shell: #241a11;
-  --color-surface: #2a2018;
-  --color-surface-sunken: #33261a;
-  --color-border: rgba(234, 223, 201, 0.16);
-  --color-text: #fbf6ed;
-  --color-text-muted: rgba(251, 246, 237, 0.7);
-  --color-on-brand: #2a2018;
-  --color-focus-ring: #fbf6ed;
-  --color-focus-halo: rgba(244, 162, 26, 0.35);
-  --color-status-neutral: rgba(251, 246, 237, 0.35);
+  --color-bg: #17130e;
+  --color-bg-shell: #1f1913;
+  --color-surface: #241d15;
+  --color-surface-sunken: #2b2318;
+  --color-border: rgba(227, 218, 202, 0.16);
+  --color-border-input: rgba(227, 218, 202, 0.28);
+  --color-text: #fbf7ef;
+  --color-text-muted: #c9c2b2;
+  --color-text-subtle: rgba(251, 247, 239, 0.5);
+  --color-on-brand: #171512;
+  --color-focus-ring: #fbf7ef;
+  --color-focus-halo: rgba(245, 184, 0, 0.35);
+  --color-status-neutral: rgba(251, 247, 239, 0.35);
 }
 
 @layer base {
@@ -48,7 +52,8 @@
 
 @layer utilities {
   .text-numeric {
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    font-weight: 600;
+    font-weight: 500;
   }
 }

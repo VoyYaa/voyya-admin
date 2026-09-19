@@ -7,6 +7,7 @@ import { loginAdmin } from '../api/auth.api';
 import { ApiError, domainErrorCode, isNetworkError } from '../api/errors';
 import { AUTH_ERROR_MESSAGES, LOGIN_COPY } from '../copy/auth';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
+import { resolveHomePath } from '../lib/routes';
 import { useSessionStore } from '../state/session-store';
 
 type LoginErrorState =
@@ -22,6 +23,7 @@ function formatCountdown(totalSeconds: number): string {
 
 export function LoginPage(): JSX.Element {
   const status = useSessionStore((s) => s.status);
+  const role = useSessionStore((s) => s.user?.role);
   const setSession = useSessionStore((s) => s.setSession);
   const navigate = useNavigate();
   const online = useNetworkOnline();
@@ -53,7 +55,7 @@ export function LoginPage(): JSX.Element {
   }, [errorState]);
 
   if (status === 'authenticated') {
-    return <Navigate to="/ops/queue" replace />;
+    return <Navigate to={resolveHomePath(role)} replace />;
   }
 
   const rateLimited = errorState.kind === 'rate-limited';
@@ -64,7 +66,7 @@ export function LoginPage(): JSX.Element {
     try {
       const response = await loginAdmin(dto);
       setSession(response);
-      navigate('/ops/queue', { replace: true });
+      navigate(resolveHomePath(response.user.role), { replace: true });
     } catch (error) {
       if (isNetworkError(error)) {
         setErrorState({

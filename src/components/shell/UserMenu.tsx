@@ -8,6 +8,7 @@ import { useSessionStore } from '../../state/session-store';
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrador',
   operator: 'Operador',
+  platform_admin: 'Admin de plataforma',
 };
 
 function getFocusableMenuItems(container: HTMLElement): HTMLElement[] {

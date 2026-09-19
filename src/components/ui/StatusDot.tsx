@@ -1,18 +1,11 @@
 import type { JSX } from 'react';
-import type { StatusTone } from '../../lib/status-maps';
+import { TONE_DOT_CLASS, type StatusTone } from '../../lib/status-maps';
 
 export interface StatusDotProps {
   tone: StatusTone;
   label: string;
   pulse?: boolean;
 }
-
-const TONE_DOT_CLASS: Record<StatusTone, string> = {
-  success: 'bg-success',
-  brand: 'bg-amber',
-  danger: 'bg-danger',
-  neutral: 'bg-status-neutral',
-};
 
 export function StatusDot({ tone, label, pulse = false }: StatusDotProps): JSX.Element {
   return (

@@ -2,9 +2,11 @@ import {
   AdminError,
   CreateDriverDTO,
   CreatedDriver,
+  FleetQuota,
   ResendDriverPinResponse,
+  UploadedDocument,
 } from '@voyyaa/shared';
-import { apiRequest } from './http-client';
+import { apiRequest, apiUpload } from './http-client';
 
 export function createDriver(dto: CreateDriverDTO): Promise<CreatedDriver> {
   const body = CreateDriverDTO.parse(dto);
@@ -17,4 +19,12 @@ export function resendDriverPin(driverId: number): Promise<ResendDriverPinRespon
     ResendDriverPinResponse,
     AdminError,
   );
+}
+
+export function getFleetQuota(): Promise<FleetQuota> {
+  return apiRequest({ method: 'GET', path: '/admin/fleet-quota' }, FleetQuota, AdminError);
+}
+
+export function uploadDriverDocument(file: File): Promise<UploadedDocument> {
+  return apiUpload({ path: '/admin/drivers/documents', file }, UploadedDocument, AdminError);
 }

@@ -46,6 +46,36 @@ function buildUrl(baseUrl: string, path: string, query?: Record<string, ApiQuery
   return qs.length > 0 ? `${baseUrl}${path}?${qs}` : `${baseUrl}${path}`;
 }
 
+async function resolveResponse<TResponse>(
+  res: Response,
+  responseSchema: z.ZodType<TResponse>,
+  errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>>,
+): Promise<TResponse> {
+  const json: unknown = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const parsedError = errorSchema.safeParse(json);
+    if (parsedError.success) {
+      throw new ApiError(
+        'http',
+        parsedError.data.message,
+        res.status,
+        parsedError.data.code,
+        parsedError.data.retry_in_sec,
+        parsedError.data.field,
+        parsedError.data,
+      );
+    }
+    throw new ApiError('http', `Error inesperado del servidor (${res.status}).`, res.status);
+  }
+
+  const parsed = responseSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new ApiError('validation', 'La respuesta del servidor no tiene el formato esperado.');
+  }
+  return parsed.data;
+}
+
 export function apiRequest<TResponse>(
   options: ApiRequestOptions,
   responseSchema: z.ZodType<TResponse>,
@@ -84,26 +114,53 @@ async function performRequest<TResponse>(
     authHandlers.onSessionExpired();
   }
 
-  const json: unknown = await res.json().catch(() => null);
+  return resolveResponse(res, responseSchema, errorSchema);
+}
 
-  if (!res.ok) {
-    const parsedError = errorSchema.safeParse(json);
-    if (parsedError.success) {
-      throw new ApiError(
-        'http',
-        parsedError.data.message,
-        res.status,
-        parsedError.data.code,
-        parsedError.data.retry_in_sec,
-        parsedError.data.field,
-      );
+interface ApiUploadOptions {
+  path: string;
+  file: File;
+  skipAuth?: boolean;
+}
+
+export function apiUpload<TResponse>(
+  options: ApiUploadOptions,
+  responseSchema: z.ZodType<TResponse>,
+  errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>> = AuthError,
+): Promise<TResponse> {
+  return performUpload(options, responseSchema, errorSchema, false);
+}
+
+async function performUpload<TResponse>(
+  options: ApiUploadOptions,
+  responseSchema: z.ZodType<TResponse>,
+  errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>>,
+  isRetry: boolean,
+): Promise<TResponse> {
+  const accessToken = options.skipAuth ? null : (authHandlers?.getAccessToken() ?? null);
+  const formData = new FormData();
+  formData.append('file', options.file);
+
+  let res: Response;
+  try {
+    res = await fetch(`${resolveBaseUrl()}${options.path}`, {
+      method: 'POST',
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: formData,
+    });
+  } catch {
+    throw new ApiError('network', 'No hay conexión con el servidor.');
+  }
+
+  if (res.status === 401 && !options.skipAuth && !isRetry && authHandlers) {
+    const newToken = await authHandlers.refreshAndRetry();
+    if (newToken) {
+      return performUpload(options, responseSchema, errorSchema, true);
     }
-    throw new ApiError('http', `Error inesperado del servidor (${res.status}).`, res.status);
+    authHandlers.onSessionExpired();
   }
 
-  const parsed = responseSchema.safeParse(json);
-  if (!parsed.success) {
-    throw new ApiError('validation', 'La respuesta del servidor no tiene el formato esperado.');
-  }
-  return parsed.data;
+  return resolveResponse(res, responseSchema, errorSchema);
 }
