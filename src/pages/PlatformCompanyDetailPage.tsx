@@ -213,7 +213,7 @@ export function PlatformCompanyDetailPage(): JSX.Element {
                   rel="noopener noreferrer"
                   className="focus-ring rounded-sm border border-border-input px-3 py-1.5 text-btn font-display text-text hover:bg-bg-shell"
                 >
-                  Ver
+                  Descargar
                 </a>
               </div>
             ))}
