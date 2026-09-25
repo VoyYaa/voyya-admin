@@ -13,6 +13,8 @@ import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { LoginPage } from './pages/LoginPage';
 import { OpsDriversPage } from './pages/OpsDriversPage';
 import { OpsQueuePage } from './pages/OpsQueuePage';
+import { AffiliationApplicationPage } from './pages/public/AffiliationApplicationPage';
+import { AffiliationDocumentsPage } from './pages/public/AffiliationDocumentsPage';
 import { PlatformCompaniesPage } from './pages/PlatformCompaniesPage';
 import { PlatformCompanyDetailPage } from './pages/PlatformCompanyDetailPage';
 import { useSessionStore } from './state/session-store';
@@ -33,6 +35,8 @@ export function App(): JSX.Element {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/afiliacion" element={<AffiliationApplicationPage />} />
+        <Route path="/afiliacion/documentos" element={<AffiliationDocumentsPage />} />
         <Route element={<RouteGuard />}>
           <Route element={<AppShell />}>
             <Route element={<TenantOnlyGuard />}>
