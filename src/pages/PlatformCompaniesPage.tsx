@@ -53,7 +53,7 @@ export function PlatformCompaniesPage(): JSX.Element {
     [statusFilter],
   );
 
-  const { data, status, refetch } = useAsync(fetcher);
+  const { data, status, isInitialLoading, refetch } = useAsync(fetcher);
   const rows = data?.rows ?? [];
 
   return (
@@ -102,7 +102,7 @@ export function PlatformCompaniesPage(): JSX.Element {
       )}
 
       <div className="flex-1 overflow-y-auto bg-surface">
-        {status === 'loading' && !data ? (
+        {isInitialLoading ? (
           <table className="w-full table-fixed border-collapse">
             <CompaniesColGroup />
             <tbody>

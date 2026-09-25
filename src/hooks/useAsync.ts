@@ -7,6 +7,7 @@ export interface UseAsyncResult<T> {
   data: T | null;
   status: AsyncStatus;
   error: ApiError | null;
+  isInitialLoading: boolean;
   refetch: () => void;
 }
 
@@ -38,5 +39,11 @@ export function useAsync<T>(fetcher: () => Promise<T>, enabled: boolean = true):
     run();
   }, [run]);
 
-  return { data, status, error, refetch: run };
+  return {
+    data,
+    status,
+    error,
+    isInitialLoading: status === 'loading' && data === null,
+    refetch: run,
+  };
 }

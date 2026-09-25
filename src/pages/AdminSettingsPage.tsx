@@ -48,7 +48,7 @@ export function AdminSettingsPage(): JSX.Element {
   const online = useNetworkOnline();
   const pushToast = useToastStore((s) => s.pushToast);
   const fetcher = useCallback(() => getConsoleSettings(), []);
-  const { data, status, refetch } = useAsync(fetcher);
+  const { data, status, isInitialLoading, refetch } = useAsync(fetcher);
 
   const [draft, setDraft] = useState<EditableFields | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -112,7 +112,7 @@ export function AdminSettingsPage(): JSX.Element {
     }
   };
 
-  if (status === 'loading' && !data) {
+  if (isInitialLoading) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-8">
         <div className="space-y-6 rounded-md border border-border bg-surface p-6">

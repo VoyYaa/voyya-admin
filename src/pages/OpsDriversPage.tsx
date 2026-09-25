@@ -67,7 +67,7 @@ export function OpsDriversPage(): JSX.Element {
     [search, statusFilter],
   );
 
-  const { data, status, refetch } = useAsync(fetcher);
+  const { data, status, isInitialLoading, refetch } = useAsync(fetcher);
 
   useEffect(() => {
     if (status === 'success') setLastLoadedAt(Date.now());
@@ -130,7 +130,7 @@ export function OpsDriversPage(): JSX.Element {
       </div>
 
       <div className={`flex-1 overflow-y-auto bg-surface ${!online ? 'opacity-85' : ''}`}>
-        {status === 'loading' && !data ? (
+        {isInitialLoading ? (
           <table className="w-full table-fixed border-collapse">
             <DriversColGroup />
             <tbody>

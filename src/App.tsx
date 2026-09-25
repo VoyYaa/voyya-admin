@@ -34,59 +34,22 @@ export function App(): JSX.Element {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<RouteGuard />}>
-          <Route element={<TenantOnlyGuard />}>
-            <Route
-              path="/ops/queue"
-              element={
-                <AppShell>
-                  <OpsQueuePage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/ops/drivers"
-              element={
-                <AppShell>
-                  <OpsDriversPage />
-                </AppShell>
-              }
-            />
-            <Route element={<AdminOnlyGuard />}>
+          <Route element={<AppShell />}>
+            <Route element={<TenantOnlyGuard />}>
+              <Route path="/ops/queue" element={<OpsQueuePage />} />
+              <Route path="/ops/drivers" element={<OpsDriversPage />} />
+              <Route element={<AdminOnlyGuard />}>
+                <Route path="/admin/drivers/new" element={<AdminNewDriverPage />} />
+                <Route path="/admin/settings" element={<AdminSettingsPage />} />
+              </Route>
+            </Route>
+            <Route element={<PlatformOnlyGuard />}>
+              <Route path="/platform/companies" element={<PlatformCompaniesPage />} />
               <Route
-                path="/admin/drivers/new"
-                element={
-                  <AppShell>
-                    <AdminNewDriverPage />
-                  </AppShell>
-                }
-              />
-              <Route
-                path="/admin/settings"
-                element={
-                  <AppShell>
-                    <AdminSettingsPage />
-                  </AppShell>
-                }
+                path="/platform/companies/:companyId"
+                element={<PlatformCompanyDetailPage />}
               />
             </Route>
-          </Route>
-          <Route element={<PlatformOnlyGuard />}>
-            <Route
-              path="/platform/companies"
-              element={
-                <AppShell>
-                  <PlatformCompaniesPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/platform/companies/:companyId"
-              element={
-                <AppShell>
-                  <PlatformCompanyDetailPage />
-                </AppShell>
-              }
-            />
           </Route>
           <Route path="/" element={<HomeRedirect />} />
         </Route>

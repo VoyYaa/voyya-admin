@@ -38,7 +38,7 @@ export function TenantBadge({ tenant }: TenantBadgeProps): JSX.Element | null {
     .join(' · ');
 
   const fetchCompanyProfile = useCallback(() => getCompanyProfile(), []);
-  const { data, status } = useAsync(fetchCompanyProfile, tenant !== null);
+  const { data, isInitialLoading } = useAsync(fetchCompanyProfile, tenant !== null);
 
   if (!label) return null;
 
@@ -46,8 +46,8 @@ export function TenantBadge({ tenant }: TenantBadgeProps): JSX.Element | null {
     <>
       <span className="h-5 w-px bg-frame-border" aria-hidden="true" />
       <span className="text-small text-frame-text-muted">{label}</span>
-      {status === 'loading' && <CompanyStatusChipSkeleton />}
-      {status === 'success' && data && <CompanyStatusChip profile={data} />}
+      {isInitialLoading && <CompanyStatusChipSkeleton />}
+      {data && <CompanyStatusChip profile={data} />}
     </>
   );
 }

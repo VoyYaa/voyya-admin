@@ -1,13 +1,10 @@
-import type { JSX, ReactNode } from 'react';
+import type { JSX } from 'react';
+import { Outlet } from 'react-router-dom';
 import { ToastViewport } from '../ui/ToastViewport';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 
-export interface AppShellProps {
-  children: ReactNode;
-}
-
-export function AppShell({ children }: AppShellProps): JSX.Element {
+export function AppShell(): JSX.Element {
   return (
     <div className="flex min-h-screen bg-bg text-text">
       <a
@@ -20,7 +17,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       <div className="flex flex-1 flex-col">
         <Topbar />
         <main id="contenido" className="flex-1 overflow-y-auto">
-          {children}
+          <Outlet />
         </main>
       </div>
       <ToastViewport />

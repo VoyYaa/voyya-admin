@@ -53,7 +53,7 @@ export function PlatformCompanyDetailPage(): JSX.Element {
   const pushToast = useToastStore((s) => s.pushToast);
 
   const fetcher = useCallback(() => getPlatformCompanyDetail(companyId), [companyId]);
-  const { data, status, refetch } = useAsync(fetcher, Number.isFinite(companyId));
+  const { data, status, isInitialLoading, refetch } = useAsync(fetcher, Number.isFinite(companyId));
 
   const [mode, setMode] = useState<DecisionMode>('none');
   const [actionInFlight, setActionInFlight] = useState(false);
@@ -93,7 +93,7 @@ export function PlatformCompanyDetailPage(): JSX.Element {
     );
   }
 
-  if (status === 'loading' && !data) {
+  if (isInitialLoading) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-8">
         <div className="h-48 animate-pulse rounded-md bg-bg-shell motion-reduce:animate-none" />

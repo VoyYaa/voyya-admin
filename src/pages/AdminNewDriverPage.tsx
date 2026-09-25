@@ -117,7 +117,12 @@ export function AdminNewDriverPage(): JSX.Element {
   const [submitting, setSubmitting] = useState(false);
 
   const quotaFetcher = useCallback(() => getFleetQuota(), []);
-  const { data: quota, status: quotaStatus, refetch: refetchQuota } = useAsync(quotaFetcher);
+  const {
+    data: quota,
+    status: quotaStatus,
+    isInitialLoading: quotaInitialLoading,
+    refetch: refetchQuota,
+  } = useAsync(quotaFetcher);
   const quotaExhausted = quota !== null && quota.available === 0;
 
   const {
@@ -270,7 +275,12 @@ export function AdminNewDriverPage(): JSX.Element {
         </Link>
       </div>
 
-      <FleetQuotaBanner status={quotaStatus} quota={quota} onRetry={refetchQuota} />
+      <FleetQuotaBanner
+        status={quotaStatus}
+        isInitialLoading={quotaInitialLoading}
+        quota={quota}
+        onRetry={refetchQuota}
+      />
 
       {!online && (
         <p
@@ -464,12 +474,18 @@ export function AdminNewDriverPage(): JSX.Element {
 
 interface FleetQuotaBannerProps {
   status: 'loading' | 'success' | 'error';
+  isInitialLoading: boolean;
   quota: { declared: number | null; used: number; available: number | null } | null;
   onRetry: () => void;
 }
 
-function FleetQuotaBanner({ status, quota, onRetry }: FleetQuotaBannerProps): JSX.Element | null {
-  if (status === 'loading' && !quota) return null;
+function FleetQuotaBanner({
+  status,
+  isInitialLoading,
+  quota,
+  onRetry,
+}: FleetQuotaBannerProps): JSX.Element | null {
+  if (isInitialLoading) return null;
   if (status === 'error' && !quota) {
     return (
       <div className="mb-4 flex items-center gap-3 rounded-xs border border-border bg-surface-sunken px-3 py-2">
