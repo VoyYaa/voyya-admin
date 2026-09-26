@@ -1,10 +1,12 @@
-import { useCallback, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import {
   OPS_LIST_DEFAULT_LIMIT,
+  OPS_QUEUE_FILTER_STATUSES,
   OPS_QUEUE_POLL_INTERVAL_MS,
   type OpsQueueRow,
   type OpsQueueStatusFilter,
   type OpsTripDetail,
+  type TripStatus,
 } from '@voyyaa/shared';
 import { getOpsQueue, getOpsTripDetail } from '../api/ops-queue.api';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
@@ -14,11 +16,13 @@ import { EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStat
 import { Timeline } from '../components/ui/Timeline';
 import { useAsync } from '../hooks/useAsync';
 import { useOpsPolling } from '../hooks/useOpsPolling';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { useQueueAnnouncement } from '../hooks/useQueueAnnouncement';
 import { useRowFlash } from '../hooks/useRowFlash';
 import { elapsedMsSince, formatClockTime, formatDurationMmSs } from '../lib/time';
 import {
   QUEUE_FILTER_LABELS,
+  TONE_DOT_CLASS,
   TRIP_STATUS_LABELS,
   TRIP_STATUS_TONES,
   type StatusTone,
@@ -46,14 +50,21 @@ const FILTER_OPTIONS: OpsQueueStatusFilter[] = [
   'no_driver',
 ];
 
+function matchesQueueFilter(
+  status: TripStatus,
+  filter: Exclude<OpsQueueStatusFilter, 'all'>,
+): boolean {
+  return (OPS_QUEUE_FILTER_STATUSES[filter] as readonly TripStatus[]).includes(status);
+}
+
 export function OpsQueuePage(): JSX.Element {
   const [statusFilter, setStatusFilter] = useState<OpsQueueStatusFilter>('all');
   const [search, setSearch] = useState('');
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
 
   const fetcher = useCallback(
-    () => getOpsQueue({ status: statusFilter, limit: OPS_LIST_DEFAULT_LIMIT }),
-    [statusFilter],
+    () => getOpsQueue({ status: 'all', limit: OPS_LIST_DEFAULT_LIMIT }),
+    [],
   );
 
   const { data, freshness, skewMs, lastSuccessAt, error, isInitialLoading, refetch } =
@@ -61,15 +72,35 @@ export function OpsQueuePage(): JSX.Element {
 
   const rows = useMemo(() => data?.rows ?? [], [data]);
 
+  const filterCounts = useMemo(() => {
+    const counts = { all: rows.length, pending: 0, assigned: 0, in_progress: 0, no_driver: 0 } as Record<
+      OpsQueueStatusFilter,
+      number
+    >;
+    for (const row of rows) {
+      for (const option of FILTER_OPTIONS) {
+        if (option !== 'all' && matchesQueueFilter(row.status, option)) {
+          counts[option] += 1;
+        }
+      }
+    }
+    return counts;
+  }, [rows]);
+
+  const statusFilteredRows = useMemo(() => {
+    if (statusFilter === 'all') return rows;
+    return rows.filter((row) => matchesQueueFilter(row.status, statusFilter));
+  }, [rows, statusFilter]);
+
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (term.length === 0) return rows;
-    return rows.filter(
+    if (term.length === 0) return statusFilteredRows;
+    return statusFilteredRows.filter(
       (row) =>
         row.passenger_name.toLowerCase().includes(term) ||
         (row.driver?.name.toLowerCase().includes(term) ?? false),
     );
-  }, [rows, search]);
+  }, [statusFilteredRows, search]);
 
   const flashSource = useMemo(
     () => filteredRows.map((row) => ({ id: row.trip_request_id, status: row.status })),
@@ -85,22 +116,32 @@ export function OpsQueuePage(): JSX.Element {
           <p className="text-eyebrow uppercase text-amber-ink dark:text-amber">Operación</p>
           <h1 className="text-display font-display text-text">Cola en vivo</h1>
         </div>
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          {FILTER_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setStatusFilter(option)}
-              aria-pressed={statusFilter === option}
-              className={`focus-ring rounded-sm border px-3 py-1.5 text-small font-medium ${
-                statusFilter === option
-                  ? 'border-amber bg-amber/15 text-text'
-                  : 'border-border text-text-muted hover:text-text'
-              }`}
-            >
-              {QUEUE_FILTER_LABELS[option]}
-            </button>
-          ))}
+        <div className="flex flex-1 flex-wrap items-center gap-5">
+          <div role="tablist" aria-label="Filtrar por estado" className="flex items-center gap-5">
+            {FILTER_OPTIONS.map((option) => {
+              const isActive = statusFilter === option;
+              const count = filterCounts[option];
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={`${QUEUE_FILTER_LABELS[option]}, ${count} solicitud${count === 1 ? '' : 'es'}`}
+                  onClick={() => setStatusFilter(option)}
+                  className={`focus-ring -mb-px border-b-[3px] px-0.5 pb-1.5 pt-1 text-body font-medium transition-colors motion-reduce:transition-none ${
+                    isActive
+                      ? 'border-b-amber text-text'
+                      : 'border-b-transparent text-text-muted hover:border-b-amber/40 hover:text-text'
+                  }`}
+                >
+                  <span aria-hidden="true">
+                    {QUEUE_FILTER_LABELS[option]} <span className="text-numeric">· {count}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           <input
             type="search"
             value={search}
@@ -138,10 +179,7 @@ export function OpsQueuePage(): JSX.Element {
             <QueueColGroup />
             <thead className="sticky top-0 z-10 bg-surface-sunken">
               <tr>
-                <th
-                  scope="col"
-                  className="border-l-[3px] border-l-transparent py-2 pl-[13px] pr-4 text-right text-table-header text-text-muted"
-                >
+                <th scope="col" className="px-4 py-2 text-right text-table-header text-text-muted">
                   Hora
                 </th>
                 <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
@@ -195,13 +233,6 @@ const FLASH_BG_CLASS: Record<StatusTone, string> = {
   neutral: 'bg-status-neutral',
 };
 
-const RAIL_BORDER_CLASS: Record<StatusTone, string> = {
-  success: 'border-l-success',
-  brand: 'border-l-amber',
-  danger: 'border-l-danger',
-  neutral: 'border-l-status-neutral',
-};
-
 interface QueueRowProps {
   row: OpsQueueRow;
   skewMs: number;
@@ -220,9 +251,8 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
         isFlashing ? FLASH_BG_CLASS[tone] : 'hover:bg-bg-shell'
       }`}
     >
-      <td
-        className={`whitespace-nowrap border-l-[3px] py-2 pl-[13px] pr-4 text-right text-numeric text-body text-text ${RAIL_BORDER_CLASS[tone]}`}
-      >
+      <td className="relative whitespace-nowrap px-4 py-2 text-right text-numeric text-body text-text">
+        <RowRail tone={tone} active={isFlashing} />
         {formatClockTime(row.requested_at)}
       </td>
       <td className="px-4 py-2 text-body font-medium text-text">{row.passenger_name}</td>
@@ -251,6 +281,34 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
         </button>
       </td>
     </tr>
+  );
+}
+
+interface RowRailProps {
+  tone: StatusTone;
+  active: boolean;
+}
+
+function RowRail({ tone, active }: RowRailProps): JSX.Element {
+  const reducedMotion = usePrefersReducedMotion();
+  const [revealed, setRevealed] = useState(() => !active || reducedMotion);
+
+  useEffect(() => {
+    if (!active || reducedMotion) {
+      setRevealed(true);
+      return;
+    }
+    setRevealed(false);
+    const frame = window.requestAnimationFrame(() => setRevealed(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [active, reducedMotion]);
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`absolute inset-y-0 left-0 w-[3px] origin-top transition-transform duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${TONE_DOT_CLASS[tone]}`}
+      style={{ transform: `scaleY(${revealed ? 1 : 0})` }}
+    />
   );
 }
 

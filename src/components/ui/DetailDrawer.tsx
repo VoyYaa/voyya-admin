@@ -73,21 +73,21 @@ export function DetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="detail-drawer-title"
-        className="relative flex h-full w-full max-w-[420px] min-w-[360px] flex-col rounded-l-md bg-surface shadow-overlay-lg"
+        className="relative flex h-full w-full max-w-[420px] min-w-[360px] flex-col rounded-l-md border-l-[3px] border-l-amber bg-surface"
       >
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between bg-frame-bg px-6 py-4">
           <h2
             id="detail-drawer-title"
             ref={titleRef}
             tabIndex={-1}
-            className="text-title font-display text-text focus:outline-none"
+            className="text-title font-display text-frame-text focus:outline-none"
           >
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="focus-ring rounded-sm px-2 py-1 text-small text-text-muted hover:text-text"
+            className="focus-ring rounded-sm px-2 py-1 text-small text-frame-text-muted hover:text-frame-text"
           >
             Cerrar
           </button>

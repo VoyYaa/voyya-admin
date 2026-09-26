@@ -11,6 +11,14 @@ export interface ConfirmDialogProps {
   confirmDisabled?: boolean;
 }
 
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+    ),
+  );
+}
+
 export function ConfirmDialog({
   open,
   title,
@@ -22,6 +30,7 @@ export function ConfirmDialog({
   confirmDisabled = false,
 }: ConfirmDialogProps): JSX.Element | null {
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -33,6 +42,20 @@ export function ConfirmDialog({
       if (event.key === 'Escape') {
         event.preventDefault();
         onCancel();
+        return;
+      }
+      if (event.key === 'Tab' && containerRef.current) {
+        const focusables = getFocusableElements(containerRef.current);
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
       }
     }
     document.addEventListener('keydown', onKeyDown);
@@ -46,12 +69,18 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-espresso/30" />
+      <button
+        type="button"
+        aria-label="Cerrar diálogo"
+        onClick={onCancel}
+        className="absolute inset-0 bg-espresso/30"
+      />
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="relative w-full max-w-md rounded-lg bg-surface p-6 shadow-overlay-lg"
+        className="relative w-full max-w-md rounded-sm border-t-[3px] border-t-amber bg-surface p-6"
       >
         <h2
           id="confirm-dialog-title"

@@ -14,9 +14,9 @@ export function ToastViewport(): JSX.Element {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`pointer-events-auto flex items-center gap-3 rounded-md border px-4 py-3 text-body shadow-overlay-sm ${
-            toast.tone === 'success' ? 'border-success/40' : 'border-danger/40'
-          } bg-surface text-text`}
+          className={`pointer-events-auto flex items-center gap-3 rounded-md border-t border-r border-b border-l-[3px] border-t-border-input border-r-border-input border-b-border-input bg-surface px-4 py-3 text-body text-text ${
+            toast.tone === 'success' ? 'border-l-success' : 'border-l-danger'
+          }`}
         >
           <span
             aria-hidden="true"

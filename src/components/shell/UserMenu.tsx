@@ -110,7 +110,7 @@ export function UserMenu({ user }: UserMenuProps): JSX.Element {
         <div
           ref={panelRef}
           role="menu"
-          className="absolute right-0 top-[calc(100%+8px)] z-40 w-64 rounded-md border border-border bg-surface p-2 shadow-overlay-sm"
+          className="absolute right-0 top-[calc(100%+8px)] z-40 w-64 rounded-md border border-border bg-surface p-2"
         >
           <div className="px-3 py-2">
             <p className="text-body font-medium text-text">
