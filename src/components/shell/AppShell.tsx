@@ -11,12 +11,12 @@ export function AppShell(): JSX.Element {
     <div className="flex min-h-screen bg-bg text-text">
       <a
         href="#contenido"
-        className="focus-ring fixed left-2 top-2 z-[70] inline-flex h-tap -translate-y-16 items-center rounded-sm bg-frame-bg px-4 text-btn text-frame-text transition-transform focus:translate-y-0 motion-reduce:transition-none"
+        className="focus-ring fixed left-2 top-2 z-[70] print:hidden inline-flex h-tap -translate-y-16 items-center rounded-sm bg-frame-bg px-4 text-btn text-frame-text transition-transform focus:translate-y-0 motion-reduce:transition-none"
       >
         {COMMON_COPY.skipToContent}
       </a>
       <Sidebar />
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
         <main id="contenido" className="flex-1 overflow-y-auto">
           <Suspense fallback={<RouteFallback variant="inline" />}>

@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   OPS_LIST_DEFAULT_LIMIT,
+  type DriverPinStatus,
   type DriverStatus,
   type OpsDriverDetail,
   type OpsDriverRow,
 } from '@voyyaa/shared';
 import { getOpsDriverDetail, getOpsDrivers } from '../api/ops-drivers.api';
-import { resendDriverPin } from '../api/admin-drivers.api';
+import { PinStatusBadge } from '../components/drivers/PinStatusBadge';
+import { ResendPinAction } from '../components/drivers/ResendPinAction';
+import { PIN_COPY } from '../copy/drivers';
 import { SuspendDriverAction } from '../components/drivers/SuspendDriverAction';
 import { Button } from '../components/ui/Button';
 import { buttonClassName } from '../components/ui/button-styles';
@@ -21,16 +24,18 @@ import { useAsync } from '../hooks/useAsync';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
 import { DRIVER_STATUS_LABELS, DRIVER_STATUS_TONES, type StatusTone } from '../lib/status-maps';
+import { formatDateTimeBogota } from '../lib/settlement';
 import { computeSkewMs, elapsedMsSince, formatRelativeMinutes } from '../lib/time';
 import { useSessionStore } from '../state/session-store';
 
 function DriversColGroup(): JSX.Element {
   return (
     <colgroup>
-      <col style={{ width: '26%' }} />
+      <col style={{ width: '21%' }} />
+      <col style={{ width: '15%' }} />
+      <col style={{ width: '14%' }} />
       <col style={{ width: '20%' }} />
       <col style={{ width: '19%' }} />
-      <col style={{ width: '24%' }} />
       <col style={{ width: '11%' }} />
     </colgroup>
   );
@@ -42,7 +47,10 @@ const RAIL_BORDER_CLASS: Record<StatusTone, string> = {
   danger: 'border-l-danger',
   neutral: 'border-l-status-neutral',
   strong: 'border-l-espresso dark:border-l-crema',
+  info: 'border-l-info',
 };
+
+const RESENDABLE_FROM_ROW: DriverPinStatus[] = ['not_delivered', 'temporary_expired'];
 
 const STATUS_OPTIONS: DriverStatus[] = [
   'available',
@@ -131,7 +139,7 @@ export function OpsDriversPage(): JSX.Element {
           <table className="w-full table-fixed border-collapse">
             <DriversColGroup />
             <tbody>
-              <SkeletonRows columnCount={5} />
+              <SkeletonRows columnCount={6} />
             </tbody>
           </table>
         ) : status === 'error' && !data ? (
@@ -175,6 +183,9 @@ export function OpsDriversPage(): JSX.Element {
                   Estado
                 </th>
                 <th scope="col" className={TH_CLASS}>
+                  {PIN_COPY.column}
+                </th>
+                <th scope="col" className={TH_CLASS}>
                   Ubicación
                 </th>
                 <th scope="col" className={TH_CLASS}>
@@ -188,6 +199,8 @@ export function OpsDriversPage(): JSX.Element {
                   key={row.driver_id}
                   row={row}
                   skewMs={skewMs}
+                  canManage={role === 'admin'}
+                  onDriverChanged={refetch}
                   onView={() => setSelectedDriverId(row.driver_id)}
                 />
               ))}
@@ -209,10 +222,18 @@ export function OpsDriversPage(): JSX.Element {
 interface DriverRowProps {
   row: OpsDriverRow;
   skewMs: number;
+  canManage: boolean;
+  onDriverChanged: () => void;
   onView: () => void;
 }
 
-function DriverRow({ row, skewMs, onView }: DriverRowProps): JSX.Element {
+function DriverRow({
+  row,
+  skewMs,
+  canManage,
+  onDriverChanged,
+  onView,
+}: DriverRowProps): JSX.Element {
   return (
     <tr className={`${ROW_CLASS} hover:bg-bg-shell`}>
       <td
@@ -238,6 +259,19 @@ function DriverRow({ row, skewMs, onView }: DriverRowProps): JSX.Element {
           tone={DRIVER_STATUS_TONES[row.status]}
           label={DRIVER_STATUS_LABELS[row.status]}
         />
+      </td>
+      <td className="px-4 py-2">
+        <div className="flex flex-col items-start gap-1">
+          <PinStatusBadge pinStatus={row.pin_status} />
+          {canManage && RESENDABLE_FROM_ROW.includes(row.pin_status) && (
+            <ResendPinAction
+              driverId={row.driver_id}
+              fullName={`${row.first_name} ${row.last_name}`}
+              pinStatus={row.pin_status}
+              onResent={onDriverChanged}
+            />
+          )}
+        </div>
       </td>
       <td className="px-4 py-2">
         <LocationCell row={row} skewMs={skewMs} />
@@ -291,20 +325,6 @@ function DriverDetailDrawer({
   }, [driverId]);
 
   const { data, status, refetch } = useAsync(fetcher, driverId !== null);
-  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-
-  const onResendPin = async (): Promise<void> => {
-    if (driverId === null) return;
-    setResendState('sending');
-    try {
-      await resendDriverPin(driverId);
-      setResendState('sent');
-      refetch();
-    } catch {
-      setResendState('error');
-    }
-  };
-
   return (
     <DetailDrawer open={driverId !== null} title="Detalle del conductor" onClose={onClose}>
       {status === 'loading' && <DetailSkeleton />}
@@ -333,6 +353,16 @@ function DriverDetailDrawer({
               <dd className="text-numeric">{data.phone}</dd>
             </div>
             <div>
+              <dt className="text-small text-text-muted">{PIN_COPY.sectionLabel}</dt>
+              <dd className="space-y-1">
+                <PinStatusBadge pinStatus={data.pin_status} />
+                <PinDetailNote
+                  pinStatus={data.pin_status}
+                  expiresAt={data.temporary_pin_expires_at}
+                />
+              </dd>
+            </div>
+            <div>
               <dt className="text-small text-text-muted">Licencia</dt>
               <dd>{data.license ?? 'No registrada'}</dd>
             </div>
@@ -348,27 +378,15 @@ function DriverDetailDrawer({
 
           {canManage && (
             <div className="space-y-2 border-t border-border pt-4">
-              {data.pin_delivered_at === null && (
-                <div>
-                  <Button
-                    variant="ghost"
-                    onClick={() => void onResendPin()}
-                    loading={resendState === 'sending'}
-                  >
-                    {resendState === 'sending' ? 'Reenviando…' : 'Reenviar PIN'}
-                  </Button>
-                  {resendState === 'sent' && (
-                    <p className="mt-1 text-small text-success-ink dark:text-success-ink-dark">
-                      PIN reenviado.
-                    </p>
-                  )}
-                  {resendState === 'error' && (
-                    <p className="mt-1 text-small text-danger-ink dark:text-danger-ink-dark">
-                      No pudimos reenviar el PIN. Intenta de nuevo.
-                    </p>
-                  )}
-                </div>
-              )}
+              <ResendPinAction
+                driverId={data.driver_id}
+                fullName={`${data.first_name} ${data.last_name}`}
+                pinStatus={data.pin_status}
+                onResent={() => {
+                  refetch();
+                  onDriverChanged();
+                }}
+              />
               <SuspendDriverAction
                 driverId={data.driver_id}
                 fullName={`${data.first_name} ${data.last_name}`}
@@ -384,4 +402,20 @@ function DriverDetailDrawer({
       )}
     </DetailDrawer>
   );
+}
+
+function PinDetailNote({
+  pinStatus,
+  expiresAt,
+}: {
+  pinStatus: DriverPinStatus;
+  expiresAt: string | null;
+}): JSX.Element {
+  const notes: Record<DriverPinStatus, string> = {
+    not_delivered: PIN_COPY.notDeliveredInfo,
+    temporary: PIN_COPY.temporaryPending(expiresAt ? formatDateTimeBogota(expiresAt) : null),
+    temporary_expired: PIN_COPY.expiredInfo,
+    personal: PIN_COPY.personalInfo,
+  };
+  return <p className="text-small text-text-muted">{notes[pinStatus]}</p>;
 }

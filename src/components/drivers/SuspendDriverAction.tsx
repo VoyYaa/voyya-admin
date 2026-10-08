@@ -1,7 +1,7 @@
 import { useCallback, useState, type JSX } from 'react';
 import type { DriverStatus } from '@voyyaa/shared';
 import { suspendDriver } from '../../api/admin-drivers.api';
-import { ApiError, domainErrorCode, isNetworkError } from '../../api/errors';
+import { domainErrorCode, isNetworkError } from '../../api/errors';
 import { SUSPEND_DRIVER_COPY } from '../../copy/drivers';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
 import { useToastStore } from '../../state/toast-store';
@@ -15,18 +15,9 @@ export interface SuspendDriverActionProps {
   onSuspended: () => void;
 }
 
-const HTTP_CONFLICT = 409;
-
-function hasActiveTrip(error: unknown): boolean {
-  return (
-    domainErrorCode(error) === 'DRIVER_HAS_ACTIVE_TRIP' ||
-    (error instanceof ApiError && error.kind === 'http' && error.status === HTTP_CONFLICT)
-  );
-}
-
 function suspendErrorMessage(error: unknown): string {
   if (isNetworkError(error)) return SUSPEND_DRIVER_COPY.offline;
-  if (hasActiveTrip(error)) return SUSPEND_DRIVER_COPY.activeTrip;
+  if (domainErrorCode(error) === 'DRIVER_HAS_ACTIVE_TRIP') return SUSPEND_DRIVER_COPY.activeTrip;
   if (domainErrorCode(error) === 'DRIVER_NOT_FOUND') return SUSPEND_DRIVER_COPY.notFound;
   return SUSPEND_DRIVER_COPY.generic;
 }

@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { ADMIN_AUTH_FILE } from '../env';
+import { mockOpsDrivers } from '../fixtures/settlement-mock';
 
 test.use({ storageState: ADMIN_AUTH_FILE });
 
@@ -44,6 +45,7 @@ test.describe('suspend driver action', () => {
   test('asks for confirmation and can be cancelled without calling the backend', async ({
     page,
   }) => {
+    await mockOpsDrivers(page);
     let suspendCalls = 0;
     await page.route(SUSPEND_PATH, async (route) => {
       suspendCalls += 1;
@@ -61,6 +63,7 @@ test.describe('suspend driver action', () => {
   });
 
   test('shows an error message when the backend fails', async ({ page }) => {
+    await mockOpsDrivers(page);
     await page.route(SUSPEND_PATH, (route) =>
       fulfillSuspend(route, 500, { code: 'INTERNAL', message: 'fallo simulado' }),
     );
@@ -75,6 +78,7 @@ test.describe('suspend driver action', () => {
   });
 
   test('explains that a driver with a trip in progress cannot be suspended', async ({ page }) => {
+    await mockOpsDrivers(page);
     await page.route(SUSPEND_PATH, (route) =>
       fulfillSuspend(route, 409, {
         code: 'DRIVER_HAS_ACTIVE_TRIP',
@@ -96,29 +100,11 @@ test.describe('suspend driver action', () => {
   test('shows the Suspendido status and hides the action once the driver is suspended', async ({
     page,
   }) => {
-    let suspended = false;
+    const mock = await mockOpsDrivers(page);
     await page.route(SUSPEND_PATH, async (route) => {
-      suspended = true;
+      const target = mock.drivers.find((driver) => driver.driver_id === 1);
+      if (target) target.status = 'suspended';
       await fulfillSuspend(route, 200, { ok: true });
-    });
-    await page.route(/\/ops\/drivers/, async (route) => {
-      if (route.request().resourceType() !== 'fetch' || !suspended) {
-        await route.continue();
-        return;
-      }
-      const response = await route.fetch();
-      const json = await response.json();
-      const mark = (driver: { driver_id: number; status: string }): void => {
-        if (driver.driver_id === targetDriverId) driver.status = 'suspended';
-      };
-      if (Array.isArray(json.rows)) json.rows.forEach(mark);
-      else mark(json);
-      await route.fulfill({ response, json });
-    });
-    let targetDriverId = -1;
-    page.on('response', async (response) => {
-      const match = /\/ops\/drivers\/(\d+)$/.exec(response.url());
-      if (match && !suspended) targetDriverId = Number(match[1]);
     });
     await openFirstActiveDriverDetail(page);
 
@@ -140,11 +126,12 @@ test.describe('suspend driver action', () => {
   });
 
   test('confirms success and refreshes the drivers list', async ({ page }) => {
+    await mockOpsDrivers(page);
     await page.route(SUSPEND_PATH, (route) => fulfillSuspend(route, 200, { ok: true }));
     let listRequests = 0;
     await page.route(/\/ops\/drivers(\?|$)/, async (route) => {
       if (route.request().resourceType() === 'fetch') listRequests += 1;
-      await route.continue();
+      await route.fallback();
     });
     await openFirstActiveDriverDetail(page);
     const requestsBeforeSuspend = listRequests;

@@ -15,6 +15,9 @@ const AdminNewDriverPage = lazy(() =>
 const AdminSettingsPage = lazy(() =>
   import('./pages/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })),
 );
+const SettlementPage = lazy(() =>
+  import('./pages/SettlementPage').then((m) => ({ default: m.SettlementPage })),
+);
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
 const OpsDriversPage = lazy(() =>
   import('./pages/OpsDriversPage').then((m) => ({ default: m.OpsDriversPage })),
@@ -71,6 +74,7 @@ export function App(): JSX.Element {
                 <Route element={<AdminOnlyGuard />}>
                   <Route path="/admin/drivers/new" element={<AdminNewDriverPage />} />
                   <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                  <Route path="/reports/settlement" element={<SettlementPage />} />
                 </Route>
               </Route>
               <Route element={<PlatformOnlyGuard />}>

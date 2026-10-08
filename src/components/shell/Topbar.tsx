@@ -20,7 +20,7 @@ export function Topbar(): JSX.Element {
   const showRail = useElapsedFlag(refreshing, REFRESH_RAIL_DELAY_MS);
 
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0 print:hidden">
       <header className="flex h-14 items-center justify-between border-b-2 border-b-amber bg-frame-bg px-6">
         <div className="flex items-center gap-3">
           <a

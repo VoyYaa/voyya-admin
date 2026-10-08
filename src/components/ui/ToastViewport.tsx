@@ -4,6 +4,7 @@ import { useToastStore, type ToastMessage } from '../../state/toast-store';
 const TONE_CLASS: Record<ToastMessage['tone'], { rail: string; dot: string }> = {
   success: { rail: 'border-l-success', dot: 'bg-success' },
   danger: { rail: 'border-l-danger', dot: 'bg-danger' },
+  info: { rail: 'border-l-info', dot: 'bg-info' },
 };
 
 export function ToastViewport(): JSX.Element {
@@ -14,7 +15,7 @@ export function ToastViewport(): JSX.Element {
     <div
       role="region"
       aria-live="polite"
-      className="pointer-events-none fixed bottom-4 right-4 z-[60] flex flex-col gap-2"
+      className="pointer-events-none print:hidden fixed bottom-4 right-4 z-[60] flex flex-col gap-2"
     >
       {toasts.map((toast) => (
         <div

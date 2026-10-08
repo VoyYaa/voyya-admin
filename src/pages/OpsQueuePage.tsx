@@ -24,6 +24,7 @@ import {
   TH_RIGHT_CLASS,
 } from '../components/ui/table-styles';
 import { STAT_COPY } from '../copy/common';
+import { TRIP_DETAIL_COPY } from '../copy/drivers';
 import { useAsync } from '../hooks/useAsync';
 import { useOpsPolling } from '../hooks/useOpsPolling';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
@@ -290,6 +291,7 @@ const FLASH_BG_CLASS: Record<StatusTone, string> = {
   danger: 'bg-danger/15',
   neutral: 'bg-status-neutral',
   strong: 'bg-espresso/10 dark:bg-crema/10',
+  info: 'bg-info/15',
 };
 
 interface QueueRowProps {
@@ -402,11 +404,11 @@ function TripDetailDrawer({ tripId, onClose }: TripDetailDrawerProps): JSX.Eleme
             </div>
             <div>
               <dt className="text-small text-text-muted">Origen</dt>
-              <dd>{data.pickup_address}</dd>
+              <dd>{data.pickup_address ?? TRIP_DETAIL_COPY.addressRemoved}</dd>
             </div>
             <div>
               <dt className="text-small text-text-muted">Destino</dt>
-              <dd>{data.dropoff_address}</dd>
+              <dd>{data.dropoff_address ?? TRIP_DETAIL_COPY.addressRemoved}</dd>
             </div>
             <div>
               <dt className="text-small text-text-muted">Conductor</dt>

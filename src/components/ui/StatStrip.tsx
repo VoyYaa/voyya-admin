@@ -5,19 +5,25 @@ import { TONE_DOT_CLASS, type StatusTone } from '../../lib/status-maps';
 export interface StatItem {
   key: string;
   label: string;
-  value: number;
+  value: number | string;
   tone: StatusTone;
+  emphasized?: boolean;
 }
 
 export interface StatStripProps {
   items: readonly StatItem[];
   loading?: boolean;
+  ariaLabel?: string;
 }
 
-export function StatStrip({ items, loading = false }: StatStripProps): JSX.Element {
+export function StatStrip({
+  items,
+  loading = false,
+  ariaLabel = STAT_COPY.ariaLabel,
+}: StatStripProps): JSX.Element {
   return (
     <dl
-      aria-label={STAT_COPY.ariaLabel}
+      aria-label={ariaLabel}
       aria-busy={loading || undefined}
       className="m-0 grid shrink-0 grid-cols-2 divide-x divide-border border-b border-border bg-surface sm:grid-cols-4"
     >
@@ -34,11 +40,15 @@ export function StatStrip({ items, loading = false }: StatStripProps): JSX.Eleme
             {loading ? (
               <span
                 aria-hidden="true"
-                className="vy-skeleton block h-8 w-12 rounded-xs"
+                className="vy-skeleton block h-8 w-24 rounded-xs"
                 data-testid="stat-skeleton"
               />
             ) : (
-              <span className="font-display text-stat tabular-nums text-text">{item.value}</span>
+              <span
+                className={`font-display text-stat tabular-nums text-text ${item.emphasized ? 'underline decoration-amber decoration-4 underline-offset-4' : ''}`}
+              >
+                {item.value}
+              </span>
             )}
           </dd>
         </div>

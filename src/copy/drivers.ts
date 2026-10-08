@@ -28,3 +28,31 @@ export const NEW_DRIVER_COPY = {
   summaryTitle: 'Revisa estos campos antes de guardar:',
   quotaLoadError: 'No pudimos cargar el cupo de flota.',
 } as const;
+
+export const TRIP_DETAIL_COPY = {
+  addressRemoved: 'Dirección eliminada por política de retención.',
+} as const;
+
+export const PIN_COPY = {
+  column: 'PIN',
+  resend: 'Reenviar PIN',
+  resending: 'Reenviando…',
+  resendAria: (fullName: string): string => `Reenviar PIN a ${fullName}`,
+  dialogTitle: 'Reenviar PIN',
+  dialogBody: (fullName: string): string =>
+    `Reenviar el PIN reemplaza el actual de ${fullName} y cierra sus sesiones. Tendrá que crear un PIN nuevo.`,
+  dialogConfirm: 'Reenviar PIN',
+  dialogCancel: 'Cancelar',
+  success: (expiresAt: string): string => `PIN reenviado. Vence el ${expiresAt}.`,
+  smsFailed: 'No se pudo enviar el PIN. El PIN anterior ya no sirve; vuelve a intentarlo.',
+  offline: 'Sin conexión: no se reenvió el PIN.',
+  generic: 'No pudimos reenviar el PIN. Intenta de nuevo.',
+  notFound: 'Este conductor ya no existe en tu empresa.',
+  retry: 'Reintentar',
+  sectionLabel: 'PIN de acceso',
+  temporaryPending: (expiresAt: string | null): string =>
+    expiresAt ? `Aún no crea su PIN. Vence el ${expiresAt}.` : 'Aún no crea su PIN.',
+  expiredInfo: 'El PIN temporal venció. Reenvía uno nuevo para que pueda ingresar.',
+  notDeliveredInfo: 'El SMS con el PIN no llegó. Reenvíalo para que pueda ingresar.',
+  personalInfo: 'Ya creó su PIN personal.',
+} as const;

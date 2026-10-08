@@ -2,6 +2,7 @@ import { useCallback, type JSX, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { OPS_LIST_DEFAULT_LIMIT } from '@voyyaa/shared';
 import { getPlatformCompanies } from '../../api/platform-companies.api';
+import { SETTLEMENT_COPY } from '../../copy/settlement';
 import { useAsync } from '../../hooks/useAsync';
 import { useSessionStore } from '../../state/session-store';
 
@@ -84,6 +85,35 @@ function CompaniesIcon({ className }: { className?: string }): JSX.Element {
   );
 }
 
+function ReportIcon({ className }: { className?: string }): JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 18 18"
+      width="18"
+      height="18"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect
+        x="3.5"
+        y="2.5"
+        width="11"
+        height="13"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M6 7h6M6 10h6M6 13h3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function PlusIcon({ className }: { className?: string }): JSX.Element {
   return (
     <svg
@@ -110,7 +140,10 @@ const OPS_ITEMS: NavItem[] = [
   { to: '/ops/drivers', label: 'Conductores', icon: DriversIcon },
 ];
 
-const ADMIN_ITEMS: NavItem[] = [{ to: '/admin/settings', label: 'Parámetros', icon: SettingsIcon }];
+const ADMIN_ITEMS: NavItem[] = [
+  { to: '/reports/settlement', label: SETTLEMENT_COPY.nav, icon: ReportIcon },
+  { to: '/admin/settings', label: 'Parámetros', icon: SettingsIcon },
+];
 
 function NavGroup({ label, children }: { label: string; children: ReactNode }): JSX.Element {
   return (
@@ -176,7 +209,7 @@ export function Sidebar(): JSX.Element {
     return (
       <nav
         aria-label="Navegación principal"
-        className="flex w-[224px] shrink-0 flex-col gap-1 border-r-2 border-r-amber bg-frame-bg px-2 py-2"
+        className="flex w-[224px] shrink-0 print:hidden flex-col gap-1 border-r-2 border-r-amber bg-frame-bg px-2 py-2"
       >
         <NavGroup label="Plataforma">
           <PlatformCompaniesNavLink />
@@ -188,7 +221,7 @@ export function Sidebar(): JSX.Element {
   return (
     <nav
       aria-label="Navegación principal"
-      className="flex w-[224px] shrink-0 flex-col gap-1 border-r-2 border-r-amber bg-frame-bg px-2 py-2"
+      className="flex w-[224px] shrink-0 print:hidden flex-col gap-1 border-r-2 border-r-amber bg-frame-bg px-2 py-2"
     >
       <NavGroup label="Operación">
         {OPS_ITEMS.map((item) => (

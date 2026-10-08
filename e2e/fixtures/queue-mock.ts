@@ -74,7 +74,10 @@ function jsonResponse(route: Route, body: object): Promise<void> {
   });
 }
 
-export async function mockQueueRows(page: Page): Promise<void> {
+export async function mockQueueRows(
+  page: Page,
+  purgedDetailIds: readonly number[] = [],
+): Promise<void> {
   await page.route(/\/ops\/trip-requests(\?|$)/, async (route) => {
     if (route.request().resourceType() !== 'fetch') {
       await route.continue();
@@ -114,8 +117,8 @@ export async function mockQueueRows(page: Page): Promise<void> {
       trip_request_id: row.id,
       status: row.status,
       status_since: isoMinutesAgo(Math.max(row.minutesAgo - 1, 0)),
-      pickup_address: row.pickup,
-      dropoff_address: row.dropoff,
+      pickup_address: purgedDetailIds.includes(row.id) ? null : row.pickup,
+      dropoff_address: purgedDetailIds.includes(row.id) ? null : row.dropoff,
       fare: {
         base_fare: 8000,
         night_surcharge: 0,

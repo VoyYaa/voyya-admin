@@ -48,7 +48,7 @@ function buildUrl(baseUrl: string, path: string, query?: Record<string, ApiQuery
 
 async function resolveResponse<TResponse>(
   res: Response,
-  responseSchema: z.ZodType<TResponse>,
+  responseSchema: z.ZodType<TResponse, z.ZodTypeDef, unknown>,
   errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>>,
 ): Promise<TResponse> {
   const json: unknown = await res.json().catch(() => null);
@@ -76,20 +76,52 @@ async function resolveResponse<TResponse>(
   return parsed.data;
 }
 
+type ResponseResolver<TResult> = (res: Response) => Promise<TResult>;
+
 export function apiRequest<TResponse>(
   options: ApiRequestOptions,
-  responseSchema: z.ZodType<TResponse>,
+  responseSchema: z.ZodType<TResponse, z.ZodTypeDef, unknown>,
   errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>> = AuthError,
 ): Promise<TResponse> {
-  return performRequest(options, responseSchema, errorSchema, false);
+  return performRequest(options, (res) => resolveResponse(res, responseSchema, errorSchema), false);
 }
 
-async function performRequest<TResponse>(
-  options: ApiRequestOptions,
-  responseSchema: z.ZodType<TResponse>,
+export interface DownloadedFile {
+  blob: Blob;
+  filename: string | null;
+}
+
+function filenameFromDisposition(header: string | null): string | null {
+  const match = header ? /filename="?([^";]+)"?/i.exec(header) : null;
+  return match?.[1] ?? null;
+}
+
+async function resolveDownload(
+  res: Response,
   errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>>,
+): Promise<DownloadedFile> {
+  if (!res.ok) return resolveResponse(res, z.never(), errorSchema);
+  let blob: Blob;
+  try {
+    blob = await res.blob();
+  } catch {
+    throw new ApiError('network', 'No hay conexión con el servidor.');
+  }
+  return { blob, filename: filenameFromDisposition(res.headers.get('content-disposition')) };
+}
+
+export function apiDownload(
+  options: ApiRequestOptions,
+  errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>> = AuthError,
+): Promise<DownloadedFile> {
+  return performRequest(options, (res) => resolveDownload(res, errorSchema), false);
+}
+
+async function performRequest<TResult>(
+  options: ApiRequestOptions,
+  resolve: ResponseResolver<TResult>,
   isRetry: boolean,
-): Promise<TResponse> {
+): Promise<TResult> {
   const accessToken = options.skipAuth ? null : (authHandlers?.getAccessToken() ?? null);
 
   let res: Response;
@@ -109,12 +141,12 @@ async function performRequest<TResponse>(
   if (res.status === 401 && !options.skipAuth && !isRetry && authHandlers) {
     const newToken = await authHandlers.refreshAndRetry();
     if (newToken) {
-      return performRequest(options, responseSchema, errorSchema, true);
+      return performRequest(options, resolve, true);
     }
     authHandlers.onSessionExpired();
   }
 
-  return resolveResponse(res, responseSchema, errorSchema);
+  return resolve(res);
 }
 
 interface ApiUploadOptions {
@@ -125,7 +157,7 @@ interface ApiUploadOptions {
 
 export function apiUpload<TResponse>(
   options: ApiUploadOptions,
-  responseSchema: z.ZodType<TResponse>,
+  responseSchema: z.ZodType<TResponse, z.ZodTypeDef, unknown>,
   errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>> = AuthError,
 ): Promise<TResponse> {
   return performUpload(options, responseSchema, errorSchema, false);
@@ -133,7 +165,7 @@ export function apiUpload<TResponse>(
 
 async function performUpload<TResponse>(
   options: ApiUploadOptions,
-  responseSchema: z.ZodType<TResponse>,
+  responseSchema: z.ZodType<TResponse, z.ZodTypeDef, unknown>,
   errorSchema: z.ZodType<z.infer<typeof GenericErrorShape>>,
   isRetry: boolean,
 ): Promise<TResponse> {

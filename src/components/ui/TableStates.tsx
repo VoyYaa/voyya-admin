@@ -64,7 +64,7 @@ export function EmptyPanel({
 
 export interface ErrorPanelProps {
   title: string;
-  onRetry: () => void;
+  onRetry?: () => void;
   variant?: 'error' | 'offline';
   retryLabel?: string;
 }
@@ -82,9 +82,11 @@ export function ErrorPanel({
     >
       <StateGlyph glyph={variant} />
       <p className="text-title font-display text-text">{title}</p>
-      <Button variant="ghost" onClick={onRetry}>
-        {retryLabel}
-      </Button>
+      {onRetry && (
+        <Button variant="ghost" onClick={onRetry}>
+          {retryLabel}
+        </Button>
+      )}
     </div>
   );
 }

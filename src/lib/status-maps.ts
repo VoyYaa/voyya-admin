@@ -5,11 +5,12 @@ import type {
   CompanyStatus,
   DocumentVerificationStatus,
   DriverDocumentType,
+  DriverPinStatus,
   DriverStatus,
   TripStatus,
 } from '@voyyaa/shared';
 
-export type StatusTone = 'success' | 'brand' | 'danger' | 'neutral' | 'strong';
+export type StatusTone = 'success' | 'brand' | 'danger' | 'neutral' | 'strong' | 'info';
 
 export const TONE_DOT_CLASS: Record<StatusTone, string> = {
   success: 'bg-success',
@@ -17,6 +18,7 @@ export const TONE_DOT_CLASS: Record<StatusTone, string> = {
   danger: 'bg-danger',
   neutral: 'bg-status-neutral',
   strong: 'bg-espresso dark:bg-crema',
+  info: 'bg-info',
 };
 
 export const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
@@ -120,4 +122,18 @@ export const QUEUE_FILTER_LABELS: Record<
   assigned: 'Asignadas',
   in_progress: 'En curso',
   no_driver: 'Sin conductor',
+};
+
+export const DRIVER_PIN_STATUS_LABELS: Record<DriverPinStatus, string> = {
+  not_delivered: 'PIN no entregado',
+  temporary: 'PIN temporal',
+  temporary_expired: 'PIN temporal vencido',
+  personal: 'PIN personal',
+};
+
+export const DRIVER_PIN_STATUS_TONES: Record<DriverPinStatus, StatusTone> = {
+  not_delivered: 'brand',
+  temporary: 'info',
+  temporary_expired: 'danger',
+  personal: 'neutral',
 };

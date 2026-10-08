@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export interface ToastMessage {
   id: number;
-  tone: 'success' | 'danger';
+  tone: 'success' | 'danger' | 'info';
   message: string;
 }
 

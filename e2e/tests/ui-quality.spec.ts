@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { ADMIN_AUTH_FILE, PLATFORM_ADMIN_AUTH_FILE } from '../env';
 import { mockQueueRows } from '../fixtures/queue-mock';
+import { mockOpsDrivers, mockSettlement } from '../fixtures/settlement-mock';
 
 type Theme = 'light' | 'dark';
 
@@ -72,6 +73,7 @@ const ADMIN_SCENES: Scene[] = [
   {
     name: 'ops drivers',
     open: async (page) => {
+      await mockOpsDrivers(page);
       await page.goto('/ops/drivers');
       await expect(page.getByRole('button', { name: /^Ver detalle de / }).first()).toBeVisible();
     },
@@ -79,6 +81,7 @@ const ADMIN_SCENES: Scene[] = [
   {
     name: 'ops drivers drawer',
     open: async (page) => {
+      await mockOpsDrivers(page);
       await page.goto('/ops/drivers');
       await page
         .getByRole('button', { name: /^Ver detalle de / })
@@ -86,6 +89,82 @@ const ADMIN_SCENES: Scene[] = [
         .click();
       await expect(page.getByRole('dialog', { name: 'Detalle del conductor' })).toBeVisible();
       await expect(page.getByText('Cédula')).toBeVisible();
+    },
+  },
+  {
+    name: 'settlement report',
+    open: async (page) => {
+      await mockOpsDrivers(page);
+      await mockSettlement(page);
+      await page.goto('/reports/settlement');
+      await expect(page.getByRole('row', { name: /Diana Ríos/ })).toBeVisible();
+    },
+  },
+  {
+    name: 'settlement report with a custom range open',
+    open: async (page) => {
+      await mockOpsDrivers(page);
+      await mockSettlement(page);
+      await page.goto('/reports/settlement');
+      await expect(page.getByRole('row', { name: /Diana Ríos/ })).toBeVisible();
+      await page.getByRole('button', { name: 'Otro rango' }).click();
+      await page.getByLabel('Desde').fill('2026-03-10');
+      await page.getByLabel('Hasta').fill('2026-03-01');
+      await page.getByRole('button', { name: 'Generar reporte' }).click();
+      await expect(
+        page.getByText('La fecha inicial no puede ser posterior a la final.'),
+      ).toBeVisible();
+    },
+  },
+  {
+    name: 'settlement empty',
+    open: async (page) => {
+      await mockOpsDrivers(page);
+      await mockSettlement(page, []);
+      await page.goto('/reports/settlement');
+      await expect(page.getByText('No hay viajes registrados en ese rango.')).toBeVisible();
+    },
+  },
+  {
+    name: 'settlement error',
+    open: async (page) => {
+      await mockOpsDrivers(page);
+      const mock = await mockSettlement(page);
+      mock.setReportFailure({ status: 500, code: 'INTERNAL' });
+      await page.goto('/reports/settlement');
+      await expect(page.getByText('No pudimos generar el reporte.')).toBeVisible();
+    },
+  },
+  {
+    name: 'settlement mark dialog',
+    open: async (page) => {
+      await mockOpsDrivers(page);
+      await mockSettlement(page);
+      await page.goto('/reports/settlement');
+      await page.getByRole('button', { name: 'Marcar como remitido: Carlos Mejía' }).click();
+      await expect(page.getByRole('dialog', { name: 'Marcar como remitido' })).toBeVisible();
+    },
+  },
+  {
+    name: 'settlement history drawer',
+    open: async (page) => {
+      await mockOpsDrivers(page);
+      const mock = await mockSettlement(page);
+      mock.seedEntry({ driver_id: 1, amount: 20_000 });
+      await page.goto('/reports/settlement');
+      await page.getByRole('button', { name: /Historial de remisiones de Carlos/ }).click();
+      await expect(page.getByRole('dialog', { name: 'Remisiones de Carlos Mejía' })).toContainText(
+        'Remisión · $20.000',
+      );
+    },
+  },
+  {
+    name: 'ops drivers resend PIN dialog',
+    open: async (page) => {
+      await mockOpsDrivers(page);
+      await page.goto('/ops/drivers');
+      await page.getByRole('button', { name: 'Reenviar PIN a Luis Ospina' }).click();
+      await expect(page.getByRole('dialog', { name: 'Reenviar PIN' })).toBeVisible();
     },
   },
   {
@@ -239,9 +318,22 @@ test.describe('layout at 1024px', () => {
     await expect(page.getByRole('row', { name: /Laura Restrepo/ })).toBeVisible();
     expect(await findHorizontalOverflow(page)).toEqual([]);
 
+    await mockOpsDrivers(page);
+
     await page.goto('/ops/drivers');
     await expect(page.getByRole('button', { name: /^Ver detalle de / }).first()).toBeVisible();
     expect(await findHorizontalOverflow(page)).toEqual([]);
+  });
+
+  test('the settlement table scrolls inside its own container, not the page', async ({ page }) => {
+    await mockOpsDrivers(page);
+    await mockSettlement(page);
+    await page.goto('/reports/settlement');
+    await expect(page.getByRole('row', { name: /Diana Ríos/ })).toBeVisible();
+    const pageScrolls = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(pageScrolls).toBe(false);
   });
 });
 
@@ -272,6 +364,20 @@ test.describe('reduced motion', () => {
     expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
   });
 
+  test('no animation runs on the settlement report or its dialog', async ({ page }) => {
+    await mockOpsDrivers(page);
+    await mockSettlement(page);
+    await page.goto('/reports/settlement');
+    await expect(page.getByRole('row', { name: /Diana Ríos/ })).toBeVisible();
+    await settle(page);
+    expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+
+    await page.getByRole('button', { name: 'Marcar como remitido: Carlos Mejía' }).click();
+    await expect(page.getByRole('dialog', { name: 'Marcar como remitido' })).toBeVisible();
+    await settle(page);
+    expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+  });
+
   test('the public pages and the login are still on reduced motion', async ({ browser }) => {
     const context = await browser.newContext({
       reducedMotion: 'reduce',
@@ -296,6 +402,7 @@ test.describe('overlays', () => {
   test('Tab never leaves the suspend dialog and focus returns to its trigger on close', async ({
     page,
   }) => {
+    await mockOpsDrivers(page);
     await page.goto('/ops/drivers');
     const viewButtons = page.getByRole('button', { name: /^Ver detalle de / });
     await expect(viewButtons.first()).toBeVisible({ timeout: 15_000 });
@@ -339,6 +446,7 @@ test.describe('overlays', () => {
       suspendCalls += 1;
       await route.continue();
     });
+    await mockOpsDrivers(page);
     await page.goto('/ops/drivers');
     await page
       .getByRole('button', { name: /^Ver detalle de / })
