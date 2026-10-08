@@ -4,6 +4,8 @@ import {
   CreatedDriver,
   FleetQuota,
   ResendDriverPinResponse,
+  SuspendDriverDTO,
+  SuspendDriverResponse,
   UploadedDocument,
 } from '@voyyaa/shared';
 import { apiRequest, apiUpload } from './http-client';
@@ -27,4 +29,16 @@ export function getFleetQuota(): Promise<FleetQuota> {
 
 export function uploadDriverDocument(file: File): Promise<UploadedDocument> {
   return apiUpload({ path: '/admin/drivers/documents', file }, UploadedDocument, AdminError);
+}
+
+export function suspendDriver(
+  driverId: number,
+  reason: SuspendDriverDTO['reason'],
+): Promise<SuspendDriverResponse> {
+  const body = SuspendDriverDTO.parse({ reason });
+  return apiRequest(
+    { method: 'POST', path: `/admin/drivers/${driverId}/suspend`, body },
+    SuspendDriverResponse,
+    AdminError,
+  );
 }

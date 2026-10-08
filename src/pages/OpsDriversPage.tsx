@@ -8,6 +8,7 @@ import {
 } from '@voyyaa/shared';
 import { getOpsDriverDetail, getOpsDrivers } from '../api/ops-drivers.api';
 import { resendDriverPin } from '../api/admin-drivers.api';
+import { SuspendDriverAction } from '../components/drivers/SuspendDriverAction';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
 import { FreshnessBar } from '../components/ui/FreshnessBar';
 import { StatusDot } from '../components/ui/StatusDot';
@@ -199,6 +200,7 @@ export function OpsDriversPage(): JSX.Element {
         driverId={selectedDriverId}
         onClose={() => setSelectedDriverId(null)}
         canManage={role === 'admin'}
+        onDriverChanged={refetch}
       />
     </div>
   );
@@ -275,12 +277,14 @@ interface DriverDetailDrawerProps {
   driverId: number | null;
   onClose: () => void;
   canManage: boolean;
+  onDriverChanged: () => void;
 }
 
 function DriverDetailDrawer({
   driverId,
   onClose,
   canManage,
+  onDriverChanged,
 }: DriverDetailDrawerProps): JSX.Element {
   const fetcher = useCallback((): Promise<OpsDriverDetail> => {
     if (driverId === null) return Promise.reject(new Error('No hay conductor seleccionado.'));
@@ -367,15 +371,15 @@ function DriverDetailDrawer({
                   )}
                 </div>
               )}
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                title="Disponible en un próximo ciclo"
-                className="rounded-sm border border-border px-3 py-1.5 text-btn font-display text-text-muted opacity-60"
-              >
-                Suspender
-              </button>
+              <SuspendDriverAction
+                driverId={data.driver_id}
+                fullName={`${data.first_name} ${data.last_name}`}
+                status={data.status}
+                onSuspended={() => {
+                  refetch();
+                  onDriverChanged();
+                }}
+              />
             </div>
           )}
         </div>

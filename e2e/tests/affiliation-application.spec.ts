@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { PLATFORM_ADMIN_AUTH_FILE } from '../env';
 import {
   e2eEmail,
@@ -15,6 +15,22 @@ const COMPANY_DOCUMENT_LABELS = [
   'Habilitación Min. Transporte',
   'Póliza de responsabilidad civil',
 ];
+
+const COVERED_MUNICIPALITY_MARKER = 'ya tiene una empresa afiliada';
+
+async function firstUncoveredMunicipalityValue(page: Page): Promise<string> {
+  const options = page.getByLabel('Municipio').locator('option:not([disabled])');
+  await expect(options.first()).toBeAttached({ timeout: 15_000 });
+  const candidates = await options.evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      value: (node as HTMLOptionElement).value,
+      text: node.textContent ?? '',
+    })),
+  );
+  const uncovered = candidates.find((option) => !option.text.includes(COVERED_MUNICIPALITY_MARKER));
+  if (!uncovered) throw new Error('No hay municipios sin empresa afiliada para esta prueba.');
+  return uncovered.value;
+}
 
 test('a company submits its affiliation application end-to-end, then a platform admin closes it @data-creating', async ({
   page,
@@ -34,7 +50,7 @@ test('a company submits its affiliation application end-to-end, then a platform 
   await page.getByLabel('Razón social').fill(legalName);
   await page.getByLabel('NIT').fill(taxId);
   await page.getByLabel('Forma jurídica').selectOption('cooperative');
-  await page.getByLabel('Municipio').selectOption({ index: 1 }, { timeout: 15_000 });
+  await page.getByLabel('Municipio').selectOption(await firstUncoveredMunicipalityValue(page));
   await page.getByLabel('Flota declarada').fill('3');
 
   await page.getByLabel('Nombres').fill('E2E');
@@ -52,7 +68,9 @@ test('a company submits its affiliation application end-to-end, then a platform 
 
   await page.getByRole('button', { name: 'Enviar solicitud' }).click();
 
-  await expect(page.getByRole('heading', { name: '¡Listo! Recibimos tu solicitud.' })).toBeVisible({
+  await expect(
+    page.getByRole('status').filter({ hasText: '¡Listo! Recibimos tu solicitud.' }),
+  ).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByText(contactEmail)).toBeVisible();
@@ -64,7 +82,7 @@ test('a company submits its affiliation application end-to-end, then a platform 
     const createdRow = platformPage.getByRole('row', { name: new RegExp(legalName) });
     await expect(createdRow).toBeVisible({ timeout: 15_000 });
 
-    await createdRow.getByRole('button', { name: /^Ver$/ }).click();
+    await createdRow.getByRole('button', { name: /^Ver detalle de / }).click();
     await platformPage.waitForURL(/\/platform\/companies\/\d+$/);
     await expect(platformPage.getByRole('heading', { name: legalName })).toBeVisible();
 

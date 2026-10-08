@@ -1,4 +1,3 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState, type JSX } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -7,6 +6,7 @@ import { loginAdmin } from '../api/auth.api';
 import { ApiError, domainErrorCode, isNetworkError } from '../api/errors';
 import { AUTH_ERROR_MESSAGES, LOGIN_COPY } from '../copy/auth';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
+import { spanishZodResolver } from '../lib/form-resolver';
 import { resolveHomePath } from '../lib/routes';
 import { useSessionStore } from '../state/session-store';
 
@@ -38,7 +38,7 @@ export function LoginPage(): JSX.Element {
     setValue,
     formState: { errors },
   } = useForm<AdminLoginDTO>({
-    resolver: zodResolver(AdminLoginDTO),
+    resolver: spanishZodResolver(AdminLoginDTO),
     defaultValues: { email: '', password: '' },
   });
 

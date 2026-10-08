@@ -24,7 +24,7 @@ test.describe('platform admin console — read-only', () => {
     await page.goto('/platform/companies');
     await page.getByLabel('Filtrar por estado').selectOption('pending');
 
-    const firstViewButton = page.getByRole('button', { name: /^Ver$/ }).first();
+    const firstViewButton = page.getByRole('button', { name: /^Ver detalle de / }).first();
     const hasPendingApplication = await firstViewButton.isVisible();
     test.skip(
       !hasPendingApplication,

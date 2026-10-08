@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
 import { resolveHomePath } from '../../lib/routes';
+import { useConnectionStore } from '../../state/connection-store';
 import { useSessionStore } from '../../state/session-store';
 import { FreshnessBar } from '../ui/FreshnessBar';
 import { TenantBadge } from './TenantBadge';
@@ -9,6 +10,7 @@ import { UserMenu } from './UserMenu';
 export function Topbar(): JSX.Element {
   const user = useSessionStore((s) => s.user);
   const online = useNetworkOnline();
+  const published = useConnectionStore((state) => state.published);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b-2 border-b-amber bg-frame-bg px-6">
@@ -28,7 +30,11 @@ export function Topbar(): JSX.Element {
         <TenantBadge tenant={user?.tenant ?? null} />
       </div>
       <div className="flex items-center gap-4">
-        <FreshnessBar state={online ? 'live' : 'offline'} variant="frame" />
+        <FreshnessBar
+          state={!online ? 'offline' : (published?.state ?? 'live')}
+          errorStatus={published?.errorStatus}
+          variant="frame"
+        />
         <span className="h-5 w-px bg-frame-border" aria-hidden="true" />
         {user && <UserMenu user={user} />}
       </div>

@@ -1,4 +1,3 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
@@ -21,6 +20,7 @@ import {
 } from '../copy/affiliation';
 import { useAsync } from '../hooks/useAsync';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
+import { spanishZodResolver } from '../lib/form-resolver';
 import { DRIVER_DOCUMENT_TYPE_LABELS } from '../lib/status-maps';
 import { useToastStore } from '../state/toast-store';
 
@@ -133,7 +133,7 @@ export function AdminNewDriverPage(): JSX.Element {
     reset,
     formState: { errors, isValid },
   } = useForm<PersonalVehicleForm>({
-    resolver: zodResolver(PersonalVehicleDTO),
+    resolver: spanishZodResolver(PersonalVehicleDTO),
     mode: 'onChange',
     defaultValues: readDraft() ?? {
       first_name: '',
@@ -170,7 +170,6 @@ export function AdminNewDriverPage(): JSX.Element {
       setSlot(type, {
         status: 'uploaded',
         storageKey: uploaded.storage_key,
-        fileName: uploaded.file_name,
       });
     } catch (error) {
       const code = domainErrorCode(error);

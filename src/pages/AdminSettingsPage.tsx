@@ -27,6 +27,10 @@ const FIELD_LABELS: Record<FieldName, string> = {
   acceptance_timeout_sec: 'Timeout de aceptación',
 };
 
+function fieldInputId(field: FieldName): string {
+  return `settings-${field}`;
+}
+
 function formatFieldValue(field: FieldName, value: number): string {
   if (field === 'base_fare') return `$${value.toLocaleString('es-CO')}`;
   if (field === 'night_surcharge_pct' || field === 'holiday_surcharge_pct') return `${value}%`;
@@ -180,6 +184,7 @@ export function AdminSettingsPage(): JSX.Element {
           <h2 className="mb-3 text-title font-display text-text">Tarifa base</h2>
           <SettingsRow
             label={FIELD_LABELS.base_fare}
+            inputId={fieldInputId('base_fare')}
             dirty={dirtyFields.includes('base_fare')}
             error={fieldError?.field === 'base_fare' ? fieldError.message : undefined}
           >
@@ -188,9 +193,10 @@ export function AdminSettingsPage(): JSX.Element {
               step={500}
               min={1}
               max={1_000_000}
+              id={fieldInputId('base_fare')}
               value={draft.base_fare}
               onChange={(event) => setField('base_fare', Number(event.target.value))}
-              className="focus-ring w-40 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+              className="focus-ring h-tap w-40 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
             />
           </SettingsRow>
         </section>
@@ -199,6 +205,7 @@ export function AdminSettingsPage(): JSX.Element {
           <h2 className="mb-3 text-title font-display text-text">Recargos</h2>
           <SettingsRow
             label={FIELD_LABELS.night_surcharge_pct}
+            inputId={fieldInputId('night_surcharge_pct')}
             helper="9pm–5am"
             dirty={dirtyFields.includes('night_surcharge_pct')}
             error={fieldError?.field === 'night_surcharge_pct' ? fieldError.message : undefined}
@@ -208,13 +215,15 @@ export function AdminSettingsPage(): JSX.Element {
               step={0.01}
               min={0}
               max={100}
+              id={fieldInputId('night_surcharge_pct')}
               value={draft.night_surcharge_pct}
               onChange={(event) => setField('night_surcharge_pct', Number(event.target.value))}
-              className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+              className="focus-ring h-tap w-28 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
             />
           </SettingsRow>
           <SettingsRow
             label={FIELD_LABELS.holiday_surcharge_pct}
+            inputId={fieldInputId('holiday_surcharge_pct')}
             helper="Domingos y festivos"
             dirty={dirtyFields.includes('holiday_surcharge_pct')}
             error={fieldError?.field === 'holiday_surcharge_pct' ? fieldError.message : undefined}
@@ -224,9 +233,10 @@ export function AdminSettingsPage(): JSX.Element {
               step={0.01}
               min={0}
               max={100}
+              id={fieldInputId('holiday_surcharge_pct')}
               value={draft.holiday_surcharge_pct}
               onChange={(event) => setField('holiday_surcharge_pct', Number(event.target.value))}
-              className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+              className="focus-ring h-tap w-28 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
             />
           </SettingsRow>
         </section>
@@ -241,6 +251,7 @@ export function AdminSettingsPage(): JSX.Element {
           <h2 className="mb-3 text-title font-display text-text">Parámetros de asignación</h2>
           <SettingsRow
             label={FIELD_LABELS.search_radius_km}
+            inputId={fieldInputId('search_radius_km')}
             dirty={dirtyFields.includes('search_radius_km')}
             error={fieldError?.field === 'search_radius_km' ? fieldError.message : undefined}
           >
@@ -249,13 +260,15 @@ export function AdminSettingsPage(): JSX.Element {
               step={0.1}
               min={0.1}
               max={50}
+              id={fieldInputId('search_radius_km')}
               value={draft.search_radius_km}
               onChange={(event) => setField('search_radius_km', Number(event.target.value))}
-              className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+              className="focus-ring h-tap w-28 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
             />
           </SettingsRow>
           <SettingsRow
             label={FIELD_LABELS.acceptance_timeout_sec}
+            inputId={fieldInputId('acceptance_timeout_sec')}
             dirty={dirtyFields.includes('acceptance_timeout_sec')}
             error={fieldError?.field === 'acceptance_timeout_sec' ? fieldError.message : undefined}
           >
@@ -264,9 +277,10 @@ export function AdminSettingsPage(): JSX.Element {
               step={1}
               min={5}
               max={120}
+              id={fieldInputId('acceptance_timeout_sec')}
               value={draft.acceptance_timeout_sec}
               onChange={(event) => setField('acceptance_timeout_sec', Number(event.target.value))}
-              className="focus-ring w-28 rounded-xs border border-border bg-surface px-3 py-2 text-numeric text-text outline-none"
+              className="focus-ring h-tap w-28 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
             />
           </SettingsRow>
         </section>
@@ -325,20 +339,28 @@ export function AdminSettingsPage(): JSX.Element {
 
 interface SettingsRowProps {
   label: string;
+  inputId: string;
   helper?: string;
   dirty: boolean;
   error?: string;
   children: ReactNode;
 }
 
-function SettingsRow({ label, helper, dirty, error, children }: SettingsRowProps): JSX.Element {
+function SettingsRow({
+  label,
+  inputId,
+  helper,
+  dirty,
+  error,
+  children,
+}: SettingsRowProps): JSX.Element {
   return (
     <div className="flex h-row-lg items-center justify-between gap-4 border-b border-border last:border-b-0">
       <div>
-        <p className="flex items-center gap-2 text-body text-text">
+        <label htmlFor={inputId} className="flex items-center gap-2 text-body text-text">
           {dirty && <span className="h-1.5 w-1.5 rounded-full bg-amber" aria-hidden="true" />}
           {label}
-        </p>
+        </label>
         {helper && <p className="text-small text-text-muted">{helper}</p>}
         {error && <p className="text-small text-danger-ink dark:text-danger-ink-dark">{error}</p>}
       </div>

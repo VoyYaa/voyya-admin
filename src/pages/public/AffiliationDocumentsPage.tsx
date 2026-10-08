@@ -83,11 +83,11 @@ export function AffiliationDocumentsPage(): JSX.Element {
     setRow(type, { status: 'working', errorMessage: null, fileName: file.name });
     try {
       const uploaded = await uploadAffiliationDocument(file);
-      const saved = await replaceAffiliationDocument(companyId, activeToken, {
+      await replaceAffiliationDocument(companyId, activeToken, {
         type,
         storage_key: uploaded.storage_key,
       });
-      setRow(type, { status: 'saved', fileName: saved.file_name, errorMessage: null });
+      setRow(type, { status: 'saved', errorMessage: null });
     } catch (error) {
       if (isNetworkError(error)) {
         setRow(type, {

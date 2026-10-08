@@ -14,17 +14,19 @@ test.describe('affiliation documents reload link — client-side token states', 
   test('a missing token shows the missing-link screen', async ({ page }) => {
     await page.goto('/afiliacion/documentos');
     await expect(
-      page.getByRole('alert', { name: 'Este enlace no tiene la información necesaria.' }),
+      page.getByRole('alert').filter({ hasText: 'Este enlace no tiene la información necesaria.' }),
     ).toBeVisible();
   });
 
   test('a malformed token shows the invalid-link screen', async ({ page }) => {
     await page.goto('/afiliacion/documentos?token=not-a-real-token');
-    await expect(page.getByRole('alert', { name: 'Este enlace no es válido.' })).toBeVisible();
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'Este enlace no es válido.' }),
+    ).toBeVisible();
   });
 
   test('an expired token shows the expired-link screen', async ({ page }) => {
     await page.goto(`/afiliacion/documentos?token=${expiredAffiliationToken()}`);
-    await expect(page.getByRole('alert', { name: 'Este enlace venció.' })).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: 'Este enlace venció.' })).toBeVisible();
   });
 });

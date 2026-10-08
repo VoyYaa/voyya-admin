@@ -1,4 +1,3 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useState, type JSX } from 'react';
 import { useForm, type UseFormRegister } from 'react-hook-form';
 import { z } from 'zod';
@@ -26,6 +25,7 @@ import {
 } from '../../copy/affiliation';
 import { useAsync } from '../../hooks/useAsync';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
+import { spanishZodResolver } from '../../lib/form-resolver';
 import {
   createInitialDocumentSlot,
   validateDocumentFileClientSide,
@@ -87,7 +87,7 @@ export function AffiliationApplicationPage(): JSX.Element {
     setError,
     formState: { errors, isValid },
   } = useForm<CompanyDetailsForm>({
-    resolver: zodResolver(CompanyDetailsDTO),
+    resolver: spanishZodResolver(CompanyDetailsDTO),
     mode: 'onChange',
     defaultValues: {
       legal_name: '',
@@ -116,7 +116,6 @@ export function AffiliationApplicationPage(): JSX.Element {
       setSlot(type, {
         status: 'uploaded',
         storageKey: uploaded.storage_key,
-        fileName: uploaded.file_name,
       });
     } catch (error) {
       const code = domainErrorCode(error);

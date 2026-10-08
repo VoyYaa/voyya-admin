@@ -81,9 +81,10 @@ lea como la decisión final:
 
 Vite solo expone al bundle del cliente las variables con prefijo `VITE_*` (build-time).
 
-| Variable       | Descripción                                                     |
-| -------------- | --------------------------------------------------------------- |
-| `VITE_API_URL` | URL base del backend NestJS (`http://localhost:3000` en local). |
+| Variable                  | Descripción                                                                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_API_URL`            | URL base del backend NestJS (`http://localhost:3000` en local).                                                                                                         |
+| `VITE_PRIVACY_POLICY_URL` | URL pública de la política de tratamiento de datos (`privacy-policy.html` de `voyya-page`). Si falta, el formulario de afiliación muestra el consentimiento sin enlace. |
 
 ## Deploy en Vercel
 

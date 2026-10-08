@@ -14,10 +14,11 @@ export default defineConfig({
     ? [['github'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]
     : [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
+    channel: process.env.E2E_BROWSER_CHANNEL,
     baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: process.env.E2E_VIDEO === 'off' ? 'off' : 'retain-on-failure',
   },
   projects: [
     {

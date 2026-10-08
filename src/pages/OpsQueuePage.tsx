@@ -157,11 +157,15 @@ export function OpsQueuePage(): JSX.Element {
         <span className="text-numeric text-small text-text-muted">
           {filteredRows.length} solicitud{filteredRows.length === 1 ? '' : 'es'}
         </span>
-        <FreshnessBar state={freshness} lastUpdatedAtMs={lastSuccessAt} />
+        <FreshnessBar
+          state={freshness}
+          lastUpdatedAtMs={lastSuccessAt}
+          errorStatus={error?.status}
+        />
       </div>
 
       <div
-        className={`flex-1 overflow-y-auto bg-surface ${freshness === 'offline' ? 'opacity-85' : ''}`}
+        className={`flex-1 overflow-y-auto bg-surface ${freshness === 'offline' || freshness === 'error' ? 'opacity-85' : ''}`}
       >
         {isInitialLoading ? (
           <table className="w-full table-fixed border-collapse">

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { OPS_QUEUE_STALE_AFTER_MS } from '@voyyaa/shared';
 import { ApiError, isNetworkError } from '../api/errors';
+import type { FreshnessState } from '../copy/freshness';
+import { useConnectionStore } from '../state/connection-store';
 import { useClockTick } from './useClockTick';
 import { useDocumentVisibility } from './useDocumentVisibility';
 import { computeSkewMs } from '../lib/time';
 
-export type OpsFreshness = 'live' | 'reconnecting' | 'offline';
+export type OpsFreshness = Exclude<FreshnessState, 'stale'>;
 
 export interface UseOpsPollingResult<T> {
   data: T | null;
@@ -58,10 +60,21 @@ export function useOpsPolling<T extends { server_time: string }>(
   }, [isVisible, intervalMs, poll]);
 
   const freshness: OpsFreshness = (() => {
-    if (!navigator.onLine || lastErrorWasNetwork || lastSuccessAt === null) return 'offline';
+    if (!navigator.onLine || lastErrorWasNetwork) return 'offline';
+    if (error) return 'error';
+    if (lastSuccessAt === null) return 'reconnecting';
     const elapsed = Date.now() - lastSuccessAt;
     return elapsed >= OPS_QUEUE_STALE_AFTER_MS ? 'reconnecting' : 'live';
   })();
+
+  const publish = useConnectionStore((state) => state.publish);
+  const errorStatus = error?.status;
+
+  useEffect(() => {
+    publish({ state: freshness, errorStatus });
+  }, [publish, freshness, errorStatus]);
+
+  useEffect(() => () => publish(null), [publish]);
 
   return {
     data,
