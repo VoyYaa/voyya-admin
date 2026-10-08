@@ -18,7 +18,11 @@ export function getPlatformCompanies(
     {
       method: 'GET',
       path: '/platform/companies',
-      query: { status: query.status, limit: query.limit },
+      query: {
+        status: query.status,
+        municipality_id: query.municipality_id,
+        limit: query.limit,
+      },
     },
     PlatformCompanyListResponse,
     PlatformError,

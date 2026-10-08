@@ -32,3 +32,11 @@ export function domainErrorDetails<T>(error: unknown): T | undefined {
     ? (error.details as T | undefined)
     : undefined;
 }
+
+export function isForbiddenError(error: unknown): boolean {
+  return error instanceof ApiError && error.kind === 'http' && error.status === 403;
+}
+
+export function isNotFoundError(error: unknown): boolean {
+  return error instanceof ApiError && error.kind === 'http' && error.status === 404;
+}

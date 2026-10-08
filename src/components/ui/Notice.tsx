@@ -5,7 +5,7 @@ export type NoticeTone = 'danger' | 'info' | 'warning' | 'success';
 export interface NoticeProps {
   tone: NoticeTone;
   children: ReactNode;
-  role?: 'alert' | 'status';
+  role?: 'alert' | 'status' | 'note';
   action?: ReactNode;
   leading?: ReactNode;
   className?: string;

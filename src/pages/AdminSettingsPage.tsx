@@ -1,384 +1,221 @@
-import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
-import type { ConsoleSettings, UpdateConsoleSettingsDTO } from '@voyyaa/shared';
-import { getConsoleSettings, updateConsoleSettings } from '../api/admin-settings.api';
-import { domainErrorCode, domainErrorField, isNetworkError } from '../api/errors';
+import { useCallback, type JSX, type ReactNode } from 'react';
+import type { ConsoleSettings } from '@voyyaa/shared';
+import { getConsoleSettings } from '../api/admin-settings.api';
+import { isForbiddenError } from '../api/errors';
 import { StateGlyph } from '../components/brand/StateGlyph';
-import { Button } from '../components/ui/Button';
-import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Notice } from '../components/ui/Notice';
+import { OfficialBadge } from '../components/ui/OfficialBadge';
 import { ProgressRail } from '../components/ui/ProgressRail';
-import { ErrorPanel, SkeletonBlock } from '../components/ui/TableStates';
+import { ReadOnlyRow } from '../components/ui/ReadOnlyRow';
+import { EmptyPanel, ErrorPanel, SkeletonBlock } from '../components/ui/TableStates';
+import { SETTINGS_COPY } from '../copy/settings';
+import { serviceLabel } from '../copy/service';
 import { useAsync } from '../hooks/useAsync';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
-import { useToastStore } from '../state/toast-store';
+import {
+  CONFIG_GROUP_LABELS,
+  fieldsOfGroup,
+  formatConfigValue,
+  formatFieldValue,
+  type ConfigGroup,
+} from '../lib/service-config-fields';
+import { formatLongDate } from '../lib/time';
+import { useSessionStore } from '../state/session-store';
 
-type EditableFields = Pick<
-  UpdateConsoleSettingsDTO,
-  | 'base_fare'
-  | 'night_surcharge_pct'
-  | 'holiday_surcharge_pct'
-  | 'search_radius_km'
-  | 'acceptance_timeout_sec'
->;
+const PARAMETER_GROUPS: { group: ConfigGroup; title: string; note: string }[] = [
+  {
+    group: 'assignment',
+    title: SETTINGS_COPY.assignmentSection,
+    note: SETTINGS_COPY.assignmentNote,
+  },
+  { group: 'passenger', title: SETTINGS_COPY.passengerSection, note: SETTINGS_COPY.passengerNote },
+];
 
-type FieldName = keyof EditableFields;
-
-const FIELD_LABELS: Record<FieldName, string> = {
-  base_fare: 'Tarifa base',
-  night_surcharge_pct: 'Recargo nocturno',
-  holiday_surcharge_pct: 'Recargo festivo',
-  search_radius_km: 'Radio de búsqueda',
-  acceptance_timeout_sec: 'Timeout de aceptación',
-};
-
-function fieldInputId(field: FieldName): string {
-  return `settings-${field}`;
+function Section({
+  title,
+  note,
+  aside,
+  footer,
+  children,
+}: {
+  title: string;
+  note?: string;
+  aside?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+}): JSX.Element {
+  return (
+    <section className="mb-8 border-t border-border pt-6">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-title text-text">{title}</h2>
+        {aside}
+      </div>
+      {note && <p className="mb-3 text-small text-text-muted">{note}</p>}
+      <dl>{children}</dl>
+      {footer}
+    </section>
+  );
 }
 
-function formatFieldValue(field: FieldName, value: number): string {
-  if (field === 'base_fare') return `$${value.toLocaleString('es-CO')}`;
-  if (field === 'night_surcharge_pct' || field === 'holiday_surcharge_pct') return `${value}%`;
-  if (field === 'search_radius_km') return `${value} km`;
-  return `${value} s`;
+function LoadingState(): JSX.Element {
+  return (
+    <div role="status" aria-label={SETTINGS_COPY.loading} className="mx-auto max-w-2xl px-6 py-8">
+      <ProgressRail className="mb-6" />
+      <SkeletonBlock className="mb-2 h-3 w-24" />
+      <SkeletonBlock className="mb-8 h-8 w-48" />
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="mb-8 border-t border-border pt-6">
+          <SkeletonBlock className="mb-4 h-5 w-40" />
+          <div className="flex items-center justify-between gap-4">
+            <SkeletonBlock className="h-4 w-1/3" />
+            <SkeletonBlock className="h-4 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function toEditable(settings: ConsoleSettings): EditableFields {
-  return {
-    base_fare: settings.base_fare,
-    night_surcharge_pct: settings.night_surcharge_pct,
-    holiday_surcharge_pct: settings.holiday_surcharge_pct,
-    search_radius_km: settings.search_radius_km,
-    acceptance_timeout_sec: settings.acceptance_timeout_sec,
-  };
+function ReadOnlyNotice({ municipality }: { municipality: string | null }): JSX.Element {
+  return (
+    <Notice
+      tone="info"
+      role="note"
+      className="mb-6"
+      leading={<StateGlyph glyph="empty" size={28} />}
+    >
+      <p className="font-bold">{SETTINGS_COPY.readOnlyTitle}</p>
+      <p className="mt-1 text-small">
+        {municipality
+          ? SETTINGS_COPY.readOnlyBody(municipality)
+          : SETTINGS_COPY.readOnlyBodyGeneric}
+      </p>
+      <p className="mt-1 text-small">{SETTINGS_COPY.readOnlyAsk}</p>
+    </Notice>
+  );
+}
+
+function valueOf(settings: ConsoleSettings, key: keyof ConsoleSettings): number {
+  const value = settings[key];
+  return typeof value === 'number' ? value : 0;
 }
 
 export function AdminSettingsPage(): JSX.Element {
   const online = useNetworkOnline();
-  const pushToast = useToastStore((s) => s.pushToast);
+  const municipality = useSessionStore((s) => s.user?.tenant?.municipality_name ?? null);
   const fetcher = useCallback(() => getConsoleSettings(), []);
-  const { data, status, isInitialLoading, refetch } = useAsync(fetcher);
+  const { data, error, status, isInitialLoading, refetch } = useAsync(fetcher);
 
-  const [draft, setDraft] = useState<EditableFields | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null);
-  const [conflict, setConflict] = useState(false);
+  if (isInitialLoading) return <LoadingState />;
 
-  useEffect(() => {
-    if (data) setDraft(toEditable(data));
-  }, [data]);
-
-  const baseline = useMemo(() => (data ? toEditable(data) : null), [data]);
-
-  const dirtyFields = useMemo<FieldName[]>(() => {
-    if (!draft || !baseline) return [];
-    return (Object.keys(baseline) as FieldName[]).filter((key) => draft[key] !== baseline[key]);
-  }, [draft, baseline]);
-
-  const hasChanges = dirtyFields.length > 0;
-
-  const setField = (field: FieldName, value: number): void => {
-    setFieldError(null);
-    setDraft((current) => (current ? { ...current, [field]: value } : current));
-  };
-
-  const discardChanges = (): void => {
-    if (baseline) setDraft(baseline);
-    setFieldError(null);
-  };
-
-  const onSave = async (): Promise<void> => {
-    if (!draft || !data) return;
-    setSaving(true);
-    setFieldError(null);
-    setConflict(false);
-    try {
-      await updateConsoleSettings({ version: data.version, ...draft });
-      setConfirmOpen(false);
-      pushToast('success', 'Parámetros actualizados · aplican a las solicitudes nuevas.');
-      refetch();
-    } catch (err) {
-      const code = domainErrorCode(err);
-      if (code === 'SETTINGS_CONFLICT') {
-        setConfirmOpen(false);
-        setConflict(true);
-      } else if (code === 'SETTINGS_OUT_OF_RANGE') {
-        setConfirmOpen(false);
-        setFieldError({
-          field: domainErrorField(err) ?? '',
-          message: 'Este valor está fuera del rango permitido.',
-        });
-      } else if (isNetworkError(err)) {
-        setConfirmOpen(false);
-        setFieldError({ field: '', message: 'Sin conexión · no se puede guardar ahora.' });
-      } else {
-        setConfirmOpen(false);
-        setFieldError({ field: '', message: 'No pudimos guardar los cambios.' });
-      }
-    } finally {
-      setSaving(false);
+  if (status === 'error' && !data) {
+    if (isForbiddenError(error)) {
+      return (
+        <div className="mx-auto max-w-2xl px-6 py-8">
+          <p className="vy-eyebrow mb-1">{SETTINGS_COPY.eyebrow}</p>
+          <h1 className="mb-6 font-display text-display text-text">{SETTINGS_COPY.title}</h1>
+          <ReadOnlyNotice municipality={municipality} />
+        </div>
+      );
     }
-  };
-
-  if (isInitialLoading) {
     return (
-      <div role="status" aria-label="Cargando parámetros" className="mx-auto max-w-2xl px-6 py-8">
-        <ProgressRail className="mb-6" />
-        <SkeletonBlock className="mb-2 h-3 w-24" />
-        <SkeletonBlock className="mb-8 h-8 w-48" />
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="mb-8 border-t border-border pt-6">
-            <SkeletonBlock className="mb-4 h-5 w-40" />
-            <div className="flex items-center justify-between gap-4">
-              <SkeletonBlock className="h-4 w-1/3" />
-              <SkeletonBlock className="h-tap w-28" />
-            </div>
-          </div>
-        ))}
+      <ErrorPanel
+        title={SETTINGS_COPY.error}
+        onRetry={refetch}
+        variant={online ? 'error' : 'offline'}
+      />
+    );
+  }
+
+  if (!data) return <></>;
+
+  const hasFare = data.base_fare > 0 || data.fare_valid_from !== null;
+  if (!hasFare) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-8">
+        <EmptyPanel title={SETTINGS_COPY.emptyTitle} description={SETTINGS_COPY.emptyBody} />
       </div>
     );
   }
 
-  if (status === 'error' && !data) {
-    return <ErrorPanel title="No pudimos cargar los parámetros." onRetry={refetch} />;
-  }
-
-  if (!data || !draft) return <></>;
+  const service = serviceLabel(data.service_type);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8 pb-28">
-      <p className="vy-eyebrow mb-1">Configuración</p>
-      <h1 className="mb-6 font-display text-display text-text">Parámetros</h1>
-
-      {conflict && (
-        <Notice
-          tone="warning"
-          role="alert"
-          className="mb-6"
-          leading={<StateGlyph glyph="error" size={32} />}
-          action={
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setConflict(false);
-                refetch();
-              }}
-            >
-              Ver valores actuales
-            </Button>
-          }
-        >
-          Alguien más actualizó los parámetros mientras editabas. Revisa los valores actuales antes
-          de guardar.
-        </Notice>
-      )}
+    <div className="mx-auto max-w-2xl px-6 py-8">
+      <p className="vy-eyebrow mb-1">{SETTINGS_COPY.eyebrow}</p>
+      <h1 className="font-display text-display text-text">{SETTINGS_COPY.title}</h1>
+      <p className="mb-6 text-body text-text-muted">
+        {municipality
+          ? SETTINGS_COPY.serviceLine(service, municipality)
+          : SETTINGS_COPY.serviceOnly(service)}
+      </p>
 
       {!online && (
         <Notice
           tone="info"
           role="alert"
           className="mb-6"
-          leading={<StateGlyph glyph="offline" size={32} />}
+          leading={<StateGlyph glyph="offline" size={28} />}
         >
-          Sin conexión · no se puede guardar ahora.
+          {SETTINGS_COPY.offline}
         </Notice>
       )}
 
-      {fieldError && fieldError.field === '' && (
-        <Notice tone="danger" role="alert" className="mb-6">
-          {fieldError.message}
+      <ReadOnlyNotice municipality={municipality} />
+
+      {!data.fare_is_official && (
+        <Notice tone="warning" role="note" className="mb-6">
+          {municipality
+            ? SETTINGS_COPY.unofficialNotice(municipality)
+            : SETTINGS_COPY.unofficialNoticeGeneric}
         </Notice>
       )}
 
-      <div>
-        <section className="mb-8 border-t border-border pt-6">
-          <h2 className="mb-3 font-display text-title text-text">Tarifa base</h2>
-          <SettingsRow
-            label={FIELD_LABELS.base_fare}
-            inputId={fieldInputId('base_fare')}
-            dirty={dirtyFields.includes('base_fare')}
-            error={fieldError?.field === 'base_fare' ? fieldError.message : undefined}
-          >
-            <input
-              type="number"
-              step={500}
-              min={1}
-              max={1_000_000}
-              id={fieldInputId('base_fare')}
-              value={draft.base_fare}
-              onChange={(event) => setField('base_fare', Number(event.target.value))}
-              className="vy-input w-40 text-numeric"
-            />
-          </SettingsRow>
-        </section>
-
-        <section className="mb-8 border-t border-border pt-6">
-          <h2 className="mb-3 font-display text-title text-text">Recargos</h2>
-          <SettingsRow
-            label={FIELD_LABELS.night_surcharge_pct}
-            inputId={fieldInputId('night_surcharge_pct')}
-            helper="9pm–5am"
-            dirty={dirtyFields.includes('night_surcharge_pct')}
-            error={fieldError?.field === 'night_surcharge_pct' ? fieldError.message : undefined}
-          >
-            <input
-              type="number"
-              step={0.01}
-              min={0}
-              max={100}
-              id={fieldInputId('night_surcharge_pct')}
-              value={draft.night_surcharge_pct}
-              onChange={(event) => setField('night_surcharge_pct', Number(event.target.value))}
-              className="vy-input w-28 text-numeric"
-            />
-          </SettingsRow>
-          <SettingsRow
-            label={FIELD_LABELS.holiday_surcharge_pct}
-            inputId={fieldInputId('holiday_surcharge_pct')}
-            helper="Domingos y festivos"
-            dirty={dirtyFields.includes('holiday_surcharge_pct')}
-            error={fieldError?.field === 'holiday_surcharge_pct' ? fieldError.message : undefined}
-          >
-            <input
-              type="number"
-              step={0.01}
-              min={0}
-              max={100}
-              id={fieldInputId('holiday_surcharge_pct')}
-              value={draft.holiday_surcharge_pct}
-              onChange={(event) => setField('holiday_surcharge_pct', Number(event.target.value))}
-              className="vy-input w-28 text-numeric"
-            />
-          </SettingsRow>
-        </section>
-
-        <section className="mb-8 border-t border-border pt-6">
-          <h2 className="mb-3 font-display text-title text-text">Comisión por viaje</h2>
-          <p className="text-numeric text-title text-text">{data.commission_pct}%</p>
-          <p className="text-small text-text-muted">No editable en este ciclo.</p>
-        </section>
-
-        <section className="mb-8 border-t border-border pt-6">
-          <h2 className="mb-3 font-display text-title text-text">Parámetros de asignación</h2>
-          <SettingsRow
-            label={FIELD_LABELS.search_radius_km}
-            inputId={fieldInputId('search_radius_km')}
-            dirty={dirtyFields.includes('search_radius_km')}
-            error={fieldError?.field === 'search_radius_km' ? fieldError.message : undefined}
-          >
-            <input
-              type="number"
-              step={0.1}
-              min={0.1}
-              max={50}
-              id={fieldInputId('search_radius_km')}
-              value={draft.search_radius_km}
-              onChange={(event) => setField('search_radius_km', Number(event.target.value))}
-              className="vy-input w-28 text-numeric"
-            />
-          </SettingsRow>
-          <SettingsRow
-            label={FIELD_LABELS.acceptance_timeout_sec}
-            inputId={fieldInputId('acceptance_timeout_sec')}
-            dirty={dirtyFields.includes('acceptance_timeout_sec')}
-            error={fieldError?.field === 'acceptance_timeout_sec' ? fieldError.message : undefined}
-          >
-            <input
-              type="number"
-              step={1}
-              min={5}
-              max={120}
-              id={fieldInputId('acceptance_timeout_sec')}
-              value={draft.acceptance_timeout_sec}
-              onChange={(event) => setField('acceptance_timeout_sec', Number(event.target.value))}
-              className="vy-input w-28 text-numeric"
-            />
-          </SettingsRow>
-        </section>
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-30 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
-        <Button variant="ghost" onClick={discardChanges} disabled={!hasChanges}>
-          Descartar cambios
-        </Button>
-        <Button
-          onClick={() => setConfirmOpen(true)}
-          disabled={!hasChanges || !online}
-          loading={saving}
-        >
-          {saving ? 'Guardando…' : 'Guardar cambios'}
-        </Button>
-      </div>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title="¿Confirmar cambios de tarifa?"
-        confirmLabel="Guardar cambios"
-        cancelLabel="Seguir editando"
-        onConfirm={() => void onSave()}
-        onCancel={() => setConfirmOpen(false)}
-        confirmDisabled={saving}
-        confirming={saving}
+      <Section
+        title={SETTINGS_COPY.fareSection}
+        note={SETTINGS_COPY.fareSectionNote}
+        aside={<OfficialBadge official={data.fare_is_official} />}
+        footer={
+          data.fare_valid_from && (
+            <p className="pt-2 text-small text-text-muted">
+              {SETTINGS_COPY.effectiveSince(formatLongDate(data.fare_valid_from))}
+              {data.fare_is_official && data.fare_official_reference
+                ? ` · ${SETTINGS_COPY.reference(data.fare_official_reference)}`
+                : ''}
+            </p>
+          )
+        }
       >
-        <div className="space-y-2">
-          <table className="w-full text-small">
-            <tbody>
-              {dirtyFields.map((field) => (
-                <tr key={field}>
-                  <td className="py-1 pr-4 text-text-muted">{FIELD_LABELS[field]}</td>
-                  <td className="py-1 text-numeric text-text">
-                    {baseline && formatFieldValue(field, baseline[field])} →{' '}
-                    {formatFieldValue(field, draft[field])}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="text-small text-text-muted">
-            Aplican a las solicitudes nuevas. Los viajes en curso mantienen su tarifa ya calculada.
-          </p>
-        </div>
-      </ConfirmDialog>
-    </div>
-  );
-}
+        {fieldsOfGroup('fare').map((field) => (
+          <ReadOnlyRow key={field.key} label={field.label}>
+            {formatConfigValue(field.key, valueOf(data, field.key))}
+          </ReadOnlyRow>
+        ))}
+      </Section>
 
-interface SettingsRowProps {
-  label: string;
-  inputId: string;
-  helper?: string;
-  dirty: boolean;
-  error?: string;
-  children: ReactNode;
-}
+      <Section title={CONFIG_GROUP_LABELS.surcharges}>
+        {fieldsOfGroup('surcharges').map((field) => (
+          <ReadOnlyRow key={field.key} label={field.label} helper={field.helper}>
+            {formatConfigValue(field.key, valueOf(data, field.key))}
+          </ReadOnlyRow>
+        ))}
+      </Section>
 
-function SettingsRow({
-  label,
-  inputId,
-  helper,
-  dirty,
-  error,
-  children,
-}: SettingsRowProps): JSX.Element {
-  return (
-    <div className="flex min-h-row-lg items-center justify-between gap-4 border-b border-border py-2 last:border-b-0">
-      <div>
-        <div className="flex items-center gap-2">
-          <label htmlFor={inputId} className="text-body text-text">
-            {label}
-          </label>
-          {dirty && (
-            <span className="text-small font-bold text-amber-ink dark:text-amber">Modificado</span>
-          )}
-        </div>
-        {helper && <p className="text-small text-text-muted">{helper}</p>}
-        {error && (
-          <p className="text-small font-semibold text-danger-ink dark:text-danger-ink-dark">
-            {error}
-          </p>
-        )}
-      </div>
-      {children}
+      <Section title={SETTINGS_COPY.commissionSection} note={SETTINGS_COPY.commissionNote}>
+        <ReadOnlyRow label={SETTINGS_COPY.commissionLabel}>
+          {formatFieldValue('pct', data.commission_pct)}
+        </ReadOnlyRow>
+      </Section>
+
+      {PARAMETER_GROUPS.map(({ group, title, note }) => (
+        <Section key={group} title={title} note={note}>
+          {fieldsOfGroup(group).map((field) => (
+            <ReadOnlyRow key={field.key} label={field.label} helper={field.helper}>
+              {formatConfigValue(field.key, valueOf(data, field.key))}
+            </ReadOnlyRow>
+          ))}
+        </Section>
+      ))}
     </div>
   );
 }
