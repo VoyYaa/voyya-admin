@@ -161,7 +161,7 @@ export const COMPANY_NAMES_COPY = {
   publicNameHint:
     'Es el nombre con el que te verán los pasajeros. Si lo dejas vacío, usamos tu razón social.',
   publicNamePreview: (name: string): string => `Así te verán los pasajeros: ${name}`,
-  publicNameInvalid: 'Escribe entre 2 y 60 caracteres.',
+  publicNameInvalid: 'Escribe entre 2 y 60 caracteres, sin símbolos invisibles ni de control.',
 } as const;
 
 export const SERVICE_DECLARATION_COPY = {
@@ -213,5 +213,11 @@ export const MUNICIPALITY_FIELD_COPY = {
   offline: 'Sin conexión. Cuando vuelva, cargamos los municipios solos.',
   emptyCatalog: 'Por ahora no hay municipios para elegir. Vuelve a intentarlo en unos minutos.',
   required: 'Elige tu municipio de la lista.',
-  sourceLine: (cutDate: string): string => `Fuente: DIVIPOLA, DANE. Corte ${cutDate}.`,
+  sourceFallbackAttribution: 'Fuente: DIVIPOLA (DANE, www.dane.gov.co)',
+  sourceFallbackLicense: 'CC BY-SA 4.0',
+  sourceLicenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/deed.es',
+  sourceLead: (attribution: string): string =>
+    `${attribution.trim().replace(/\.$/, '')}, adaptado. Licencia `,
+  sourceTail: (cutDate: string): string => `. Corte ${cutDate}.`,
+  sourceNewTab: '(se abre en una pestaña nueva)',
 } as const;

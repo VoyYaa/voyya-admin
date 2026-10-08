@@ -51,7 +51,7 @@ export const CONFIG_FIELDS: readonly ConfigFieldSpec[] = [
     unit: 'cop',
     min: 1_000,
     max: 1_000_000,
-    step: 500,
+    step: 1,
     integer: true,
   },
   {

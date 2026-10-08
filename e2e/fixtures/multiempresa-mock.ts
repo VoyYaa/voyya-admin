@@ -692,7 +692,17 @@ export interface CatalogMock {
   failNextSubmit: (failure: QueuedFailure) => void;
   setRows: (rows: AffiliationMunicipality[]) => void;
   setActiveServices: (services: string[]) => void;
+  setSource: (override: Partial<CatalogSource>) => void;
 }
+
+type CatalogSource = AffiliationMunicipalityListResponse['source'];
+
+const DEFAULT_CATALOG_SOURCE: CatalogSource = {
+  name: 'DIVIPOLA — DANE',
+  cut_date: '2025-06-30',
+  attribution: 'Fuente: Departamento Administrativo Nacional de Estadística: www.dane.gov.co',
+  license: 'Creative Commons Atribución-CompartirIgual 4.0 Internacional (CC BY-SA 4.0)',
+};
 
 export async function mockCatalog(
   page: Page,
@@ -700,6 +710,7 @@ export async function mockCatalog(
 ): Promise<CatalogMock> {
   let rows = [...initial];
   let activeServices = ['taxi'];
+  let source: CatalogSource = DEFAULT_CATALOG_SOURCE;
   let catalogFailure: QueuedFailure | null = null;
   const submitFailures: QueuedFailure[] = [];
   const mock: CatalogMock = {
@@ -715,6 +726,9 @@ export async function mockCatalog(
     setActiveServices: (services) => {
       activeServices = services;
     },
+    setSource: (override) => {
+      source = { ...DEFAULT_CATALOG_SOURCE, ...override };
+    },
   };
 
   await page.route(/\/affiliation\/municipalities(\?.*)?$/, async (route) => {
@@ -726,12 +740,7 @@ export async function mockCatalog(
       200,
       AffiliationMunicipalityListResponse.parse({
         rows,
-        source: {
-          name: 'DIVIPOLA',
-          cut_date: '2025-06-30',
-          attribution: 'DANE',
-          license: 'CC BY-SA 4.0',
-        },
+        source,
         active_service_types: activeServices,
       }),
     );

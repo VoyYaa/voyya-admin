@@ -31,6 +31,31 @@ export interface MunicipalityPickerProps {
   inputRef?: Ref<HTMLInputElement>;
 }
 
+function CatalogSourceLine({
+  source,
+}: {
+  source: AffiliationMunicipalityListResponse['source'];
+}): JSX.Element {
+  const attribution =
+    source.attribution.trim() || MUNICIPALITY_FIELD_COPY.sourceFallbackAttribution;
+  const license = source.license.trim() || MUNICIPALITY_FIELD_COPY.sourceFallbackLicense;
+  return (
+    <p className="text-small text-text-muted">
+      {MUNICIPALITY_FIELD_COPY.sourceLead(attribution)}
+      <a
+        href={MUNICIPALITY_FIELD_COPY.sourceLicenseUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="focus-ring inline-flex min-h-11 items-center rounded-sm font-bold text-text underline underline-offset-2 hover:text-amber-ink dark:hover:text-amber"
+      >
+        {license}
+        <span className="sr-only"> {MUNICIPALITY_FIELD_COPY.sourceNewTab}</span>
+      </a>
+      {MUNICIPALITY_FIELD_COPY.sourceTail(formatLongDate(`${source.cut_date}T12:00:00`))}
+    </p>
+  );
+}
+
 function InfoIcon(): JSX.Element {
   return (
     <svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true">
@@ -243,13 +268,7 @@ export function MunicipalityPicker({
         </div>
       )}
 
-      {catalog && (
-        <p className="text-small text-text-muted">
-          {MUNICIPALITY_FIELD_COPY.sourceLine(
-            formatLongDate(`${catalog.source.cut_date}T12:00:00`),
-          )}
-        </p>
-      )}
+      {catalog && <CatalogSourceLine source={catalog.source} />}
 
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {announcement}

@@ -530,7 +530,7 @@ function ApprovePanel({
               inputMode="numeric"
               min={1000}
               max={1_000_000}
-              step={500}
+              step={1}
               value={baseFare}
               onChange={(event) => setBaseFare(event.target.value)}
               onWheel={(event) => event.currentTarget.blur()}

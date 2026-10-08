@@ -336,8 +336,27 @@ test.describe('department and municipality', () => {
 
   test('shows the source line with the cut date', async ({ page }) => {
     await openForm(page);
+    const line = page.locator('p', { hasText: 'Corte 30 de junio de 2025.' });
+    await expect(line).toContainText(
+      'Fuente: Departamento Administrativo Nacional de Estadística: www.dane.gov.co, adaptado. Licencia',
+    );
+    const link = line.getByRole('link', { name: /CC BY-SA 4\.0/ });
+    await expect(link).toHaveAttribute(
+      'href',
+      'https://creativecommons.org/licenses/by-sa/4.0/deed.es',
+    );
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  test('falls back to the local attribution when the API sends it empty', async ({ page }) => {
+    const mock = await mockCatalog(page);
+    mock.setSource({ attribution: '', license: '' });
+    await page.goto('/afiliacion');
     await expect(
-      page.getByText('Fuente: DIVIPOLA, DANE. Corte 30 de junio de 2025.'),
+      page.getByText(
+        'Fuente: DIVIPOLA (DANE, www.dane.gov.co), adaptado. Licencia CC BY-SA 4.0 (se abre en una pestaña nueva). Corte 30 de junio de 2025.',
+      ),
     ).toBeVisible();
   });
 });
@@ -456,13 +475,21 @@ test.describe('service and public name', () => {
     await openForm(page);
     const field = page.getByLabel('Nombre público (opcional)');
     await field.fill('A');
-    await expect(page.getByText('Escribe entre 2 y 60 caracteres.')).toBeVisible();
+    await expect(
+      page.getByText('Escribe entre 2 y 60 caracteres, sin símbolos invisibles ni de control.'),
+    ).toBeVisible();
     await field.fill('Ab');
-    await expect(page.getByText('Escribe entre 2 y 60 caracteres.')).toHaveCount(0);
+    await expect(
+      page.getByText('Escribe entre 2 y 60 caracteres, sin símbolos invisibles ni de control.'),
+    ).toHaveCount(0);
     await field.fill('x'.repeat(61));
-    await expect(page.getByText('Escribe entre 2 y 60 caracteres.')).toBeVisible();
+    await expect(
+      page.getByText('Escribe entre 2 y 60 caracteres, sin símbolos invisibles ni de control.'),
+    ).toBeVisible();
     await field.fill('');
-    await expect(page.getByText('Escribe entre 2 y 60 caracteres.')).toHaveCount(0);
+    await expect(
+      page.getByText('Escribe entre 2 y 60 caracteres, sin símbolos invisibles ni de control.'),
+    ).toHaveCount(0);
   });
 });
 
@@ -487,6 +514,32 @@ test.describe('submission', () => {
     });
     expect(Object.keys(body ?? {})).not.toContain('department_code');
     expect(Object.keys(body ?? {})).not.toContain('department');
+  });
+
+  test('rejects invisible and control characters in the public name with a clear error', async ({
+    page,
+  }) => {
+    await openForm(page);
+    const field = page.getByLabel('Nombre público (opcional)');
+    for (const hidden of ['‮', '​', '']) {
+      await field.fill(`Taxis${hidden}Horizonte`);
+      await expect(
+        page.getByText('Escribe entre 2 y 60 caracteres, sin símbolos invisibles ni de control.'),
+      ).toBeVisible();
+      await expect(field).toHaveAttribute('aria-invalid', 'true');
+    }
+    await field.fill('Taxis Horizonte');
+    await expect(page.getByText('sin símbolos invisibles ni de control')).toHaveCount(0);
+  });
+
+  test('normalizes the public name to NFC on submit', async ({ page }) => {
+    const mock = await openForm(page);
+    await page.getByLabel('Nombre público (opcional)').fill('Café Taxi');
+    await chooseMunicipality(page, 'Antioquia', 'Villa Norte');
+    await fillRest(page);
+    await page.getByRole('button', { name: 'Enviar solicitud' }).click();
+    await expect(page.getByText('¡Listo! Recibimos tu solicitud.')).toBeVisible();
+    expect(mock.submitted[0]?.public_name).toBe('Café Taxi');
   });
 
   test('omits the public name when it is left empty', async ({ page }) => {

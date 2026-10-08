@@ -78,6 +78,13 @@ test.describe('validateNumericDraft', () => {
     expect(errors.search_radius_km).toBeTruthy();
   });
 
+  test('accepts any integer fare inside the contract range and rejects values below it', () => {
+    const accepted = { ...numericDraftOf(BASELINE), base_fare: '9600' };
+    expect(validateNumericDraft(accepted, ALL_KEYS).base_fare).toBeUndefined();
+    const rejected = { ...numericDraftOf(BASELINE), base_fare: '999' };
+    expect(validateNumericDraft(rejected, ALL_KEYS).base_fare).toContain('fuera del rango');
+  });
+
   test('requires the search radius not to exceed the expansion radius', () => {
     const draft = { ...numericDraftOf(BASELINE), search_radius_km: '9', expansion_radius_km: '8' };
     expect(validateNumericDraft(draft, ALL_KEYS).search_radius_km).toContain('no puede superar');

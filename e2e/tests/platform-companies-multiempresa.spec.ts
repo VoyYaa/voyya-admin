@@ -225,6 +225,12 @@ test.describe('company detail and approval', () => {
     await page.getByLabel('Tarifa base inicial').fill('500');
     await expect(page.getByText('fuera del rango permitido ($1.000 a $1.000.000)')).toBeVisible();
     await expect(submit).toBeDisabled();
+    await page.getByLabel('Tarifa base inicial').fill('999');
+    await expect(page.getByText('fuera del rango permitido ($1.000 a $1.000.000)')).toBeVisible();
+    await expect(submit).toBeDisabled();
+    await page.getByLabel('Tarifa base inicial').fill('9600');
+    await expect(page.getByText('Debe ser múltiplo')).toHaveCount(0);
+    await expect(submit).toBeEnabled();
     await page.getByLabel('Tarifa base inicial').fill('9500');
     await submit.click();
 
