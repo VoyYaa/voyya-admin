@@ -1,28 +1,21 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { ADMIN_AUTH_FILE, PLATFORM_ADMIN_AUTH_FILE } from '../env';
+import {
+  THEMES,
+  auditAccessibility,
+  forceTheme,
+  measureUndersizedTargets,
+  settle,
+} from '../fixtures/a11y';
+import { mockAdminSettings } from '../fixtures/multiempresa-mock';
 import { mockQueueRows } from '../fixtures/queue-mock';
 import { mockOpsDrivers, mockSettlement } from '../fixtures/settlement-mock';
 
-type Theme = 'light' | 'dark';
-
-const THEMES: Theme[] = ['light', 'dark'];
 const GUEST_STATE = { cookies: [], origins: [] };
-const CONTRAST_AND_LABEL_RULES = ['color-contrast', 'label'];
 
 interface Scene {
   name: string;
   open: (page: Page) => Promise<void>;
-}
-
-async function forceTheme(page: Page, theme: Theme): Promise<void> {
-  await page.addInitScript((value) => {
-    window.localStorage.setItem('voyya_admin_theme', value);
-  }, theme);
-}
-
-async function settle(page: Page): Promise<void> {
-  await page.waitForTimeout(1300);
 }
 
 const GUEST_SCENES: Scene[] = [
@@ -168,10 +161,11 @@ const ADMIN_SCENES: Scene[] = [
     },
   },
   {
-    name: 'admin settings',
+    name: 'admin settings (read only)',
     open: async (page) => {
+      await mockAdminSettings(page);
       await page.goto('/admin/settings');
-      await expect(page.getByRole('spinbutton', { name: 'Tarifa base' })).toBeVisible();
+      await expect(page.getByText('Tarifa base')).toBeVisible();
     },
   },
   {
@@ -207,52 +201,6 @@ const PLATFORM_SCENES: Scene[] = [
     },
   },
 ];
-
-async function auditAccessibility(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-  const blocking = results.violations.filter(
-    (violation) =>
-      violation.impact === 'serious' ||
-      violation.impact === 'critical' ||
-      CONTRAST_AND_LABEL_RULES.includes(violation.id),
-  );
-  const summary = blocking.map(
-    (violation) =>
-      `${violation.id} (${violation.impact}): ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.target.join(' '))
-        .join(' | ')}`,
-  );
-  expect(summary, summary.join('\n')).toEqual([]);
-}
-
-async function measureUndersizedTargets(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
-    const minimum = 44;
-    const selector = 'button, a[href], input, select, textarea, [role=button], [role=tab]';
-    const failures: string[] = [];
-    document.querySelectorAll<HTMLElement>(selector).forEach((element) => {
-      const style = window.getComputedStyle(element);
-      if (style.visibility === 'hidden' || style.display === 'none') return;
-      const isCheckable =
-        element instanceof HTMLInputElement &&
-        (element.type === 'checkbox' || element.type === 'radio');
-      const target = isCheckable ? (element.closest('label') ?? element) : element;
-      const rect = target.getBoundingClientRect();
-      if (rect.width <= 1 || rect.height <= 1) return;
-      if (target.closest('[data-compact-chrome]')) return;
-      if (rect.height + 0.5 < minimum) {
-        const label = element.getAttribute('aria-label') ?? element.textContent?.trim() ?? '';
-        failures.push(
-          `${element.tagName.toLowerCase()} "${label.slice(0, 40)}" ${Math.round(rect.height)}px`,
-        );
-      }
-    });
-    return failures;
-  });
-}
 
 function registerSceneTests(scenes: Scene[]): void {
   for (const scene of scenes) {

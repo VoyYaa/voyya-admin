@@ -16,20 +16,12 @@ const COMPANY_DOCUMENT_LABELS = [
   'Póliza de responsabilidad civil',
 ];
 
-const COVERED_MUNICIPALITY_MARKER = 'ya tiene una empresa afiliada';
-
-async function firstUncoveredMunicipalityValue(page: Page): Promise<string> {
-  const options = page.getByLabel('Municipio').locator('option:not([disabled])');
-  await expect(options.first()).toBeAttached({ timeout: 15_000 });
-  const candidates = await options.evaluateAll((nodes) =>
-    nodes.map((node) => ({
-      value: (node as HTMLOptionElement).value,
-      text: node.textContent ?? '',
-    })),
-  );
-  const uncovered = candidates.find((option) => !option.text.includes(COVERED_MUNICIPALITY_MARKER));
-  if (!uncovered) throw new Error('No hay municipios sin empresa afiliada para esta prueba.');
-  return uncovered.value;
+async function chooseFirstMunicipality(page: Page): Promise<void> {
+  const department = page.getByLabel('Departamento');
+  await expect(department.locator('option').nth(1)).toBeAttached({ timeout: 15_000 });
+  await department.selectOption({ index: 1 });
+  await page.getByRole('combobox', { name: 'Municipio' }).click();
+  await page.getByRole('option').first().click();
 }
 
 test('a company submits its affiliation application end-to-end, then a platform admin closes it @data-creating', async ({
@@ -48,9 +40,12 @@ test('a company submits its affiliation application end-to-end, then a platform 
   ).toBeVisible();
 
   await page.getByLabel('Razón social').fill(legalName);
+  await page.getByLabel('Nombre público (opcional)').fill(`Taxis ${seed.slice(-6)}`);
   await page.getByLabel('NIT').fill(taxId);
   await page.getByLabel('Forma jurídica').selectOption('cooperative');
-  await page.getByLabel('Municipio').selectOption(await firstUncoveredMunicipalityValue(page));
+  await chooseFirstMunicipality(page);
+  await expect(page.getByText('Servicio que ofreces')).toBeVisible();
+  await expect(page.getByText('Por ahora VoyYa ofrece solo taxi.')).toBeVisible();
   await page.getByLabel('Flota declarada').fill('3');
 
   await page.getByLabel('Nombres').fill('E2E');
