@@ -149,6 +149,7 @@ export const SETTLEMENT_COPY = {
     idempotent: 'Esta semana ya estaba marcada como remitida.',
     balanceChanged:
       'El saldo cambió mientras mirabas la pantalla. Actualiza el reporte y vuelve a intentar.',
+    weekInProgress: 'La semana aún no termina. Podrás marcarla como remitida desde el lunes.',
     nothingToRemit: 'Esta semana ya no tiene nada por remitir.',
     driverNotFound: 'Este conductor ya no existe en tu empresa.',
     offline: 'Sin conexión: no se registró nada. Inténtalo cuando vuelva la señal.',

@@ -367,6 +367,22 @@ test.describe('settlement remittances', () => {
     await expect.poll(() => mock.reportQueries.length).toBeGreaterThan(before);
   });
 
+  test('explains that the week has not ended when the server rejects the remittance', async ({
+    page,
+  }) => {
+    const mock = await openReport(page);
+    await expect(carlosRow(page)).toBeVisible();
+    mock.failNextRecord({ status: 409, code: 'SETTLEMENT_WEEK_IN_PROGRESS' });
+
+    await page.getByRole('button', { name: 'Marcar como remitido: Carlos Mejía' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Marcar como remitido' });
+    await dialog.getByRole('button', { name: 'Marcar como remitido' }).click();
+    await expect(dialog).toContainText(
+      'La semana aún no termina. Podrás marcarla como remitida desde el lunes.',
+    );
+    await expect(dialog.getByRole('button', { name: 'Marcar como remitido' })).toBeVisible();
+  });
+
   test('closes the dialog when there is nothing left to remit', async ({ page }) => {
     const mock = await openReport(page);
     await expect(carlosRow(page)).toBeVisible();

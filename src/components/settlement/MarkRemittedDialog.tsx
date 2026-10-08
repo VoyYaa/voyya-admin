@@ -29,6 +29,9 @@ function failureOf(error: unknown): DialogFailure {
   if (code === 'SETTLEMENT_BALANCE_CHANGED') {
     return { message: SETTLEMENT_COPY.remittance.balanceChanged, stale: true };
   }
+  if (code === 'SETTLEMENT_WEEK_IN_PROGRESS') {
+    return { message: SETTLEMENT_COPY.remittance.weekInProgress, stale: false };
+  }
   if (code === 'DRIVER_NOT_FOUND') {
     return { message: SETTLEMENT_COPY.remittance.driverNotFound, stale: true };
   }
