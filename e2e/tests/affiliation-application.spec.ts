@@ -21,7 +21,7 @@ async function chooseFirstMunicipality(page: Page): Promise<void> {
   await expect(department.locator('option').nth(1)).toBeAttached({ timeout: 15_000 });
   await department.selectOption({ index: 1 });
   await page.getByRole('combobox', { name: 'Municipio' }).click();
-  await page.getByRole('option').first().click();
+  await page.getByRole('listbox').getByRole('option').first().click();
 }
 
 test('a company submits its affiliation application end-to-end, then a platform admin closes it @data-creating', async ({
