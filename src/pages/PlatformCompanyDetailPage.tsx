@@ -15,9 +15,16 @@ import {
   resendCompanyNotification,
 } from '../api/platform-companies.api';
 import { domainErrorCode, isNetworkError } from '../api/errors';
+import { StateGlyph } from '../components/brand/StateGlyph';
+import { Button } from '../components/ui/Button';
+import { buttonClassName } from '../components/ui/button-styles';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { ErrorPanel } from '../components/ui/TableStates';
+import { Field } from '../components/ui/Field';
+import { Notice } from '../components/ui/Notice';
+import { ProgressRail } from '../components/ui/ProgressRail';
 import { StatusDot } from '../components/ui/StatusDot';
+import { ErrorPanel, SkeletonBlock } from '../components/ui/TableStates';
+import { Timeline } from '../components/ui/Timeline';
 import {
   PLATFORM_DECISION_ERROR_MESSAGES,
   ROUTING_LIMITATION_ACK_LABEL,
@@ -95,25 +102,39 @@ export function PlatformCompanyDetailPage(): JSX.Element {
 
   if (isInitialLoading) {
     return (
-      <div className="mx-auto max-w-5xl px-6 py-8">
-        <div className="h-48 animate-pulse rounded-md bg-bg-shell motion-reduce:animate-none" />
+      <div role="status" aria-label="Cargando solicitud" className="mx-auto max-w-6xl px-6 py-8">
+        <ProgressRail className="mb-6" />
+        <SkeletonBlock className="mb-2 h-3 w-40" />
+        <SkeletonBlock className="mb-8 h-8 w-1/2" />
+        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <SkeletonBlock key={index} className="h-10" />
+          ))}
+        </div>
+        <SkeletonBlock className="mt-8 h-48" />
       </div>
     );
   }
 
   if (status === 'error' && !data) {
-    return <ErrorPanel title="No pudimos cargar la solicitud." onRetry={refetch} />;
+    return (
+      <ErrorPanel
+        title="No pudimos cargar la solicitud."
+        onRetry={refetch}
+        variant={online ? 'error' : 'offline'}
+      />
+    );
   }
 
   if (!data) return <></>;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8 pb-16">
-      <header className="mb-6 flex items-start gap-4">
+    <div className="pb-16">
+      <header className="mx-auto flex max-w-6xl items-start gap-4 px-6 pt-8">
         <Link
           to="/platform/companies"
           aria-label="Volver a Empresas"
-          className="focus-ring flex h-tap-compact w-tap-compact shrink-0 items-center justify-center rounded-xs border border-border bg-surface"
+          className={buttonClassName('ghost', 'md', 'w-tap px-0')}
         >
           <span aria-hidden="true">←</span>
         </Link>
@@ -122,7 +143,7 @@ export function PlatformCompanyDetailPage(): JSX.Element {
             Solicitud recibida el {formatDate(data.submitted_at)}
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-display font-display text-text">{data.legal_name}</h1>
+            <h1 className="font-display text-display text-text">{data.legal_name}</h1>
             <StatusDot
               tone={COMPANY_STATUS_TONES[data.status]}
               label={COMPANY_STATUS_LABELS[data.status]}
@@ -135,101 +156,104 @@ export function PlatformCompanyDetailPage(): JSX.Element {
       </header>
 
       {!online && (
-        <p
-          role="alert"
-          className="mb-4 rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
-        >
-          Sin conexión · no se pueden tomar decisiones ahora.
-        </p>
+        <div className="mx-auto mt-4 max-w-6xl px-6">
+          <Notice tone="info" role="alert" leading={<StateGlyph glyph="offline" size={28} />}>
+            Sin conexión · no se pueden tomar decisiones ahora.
+          </Notice>
+        </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.5fr_1fr]">
-        <div className="flex flex-col gap-5">
-          <section className="grid grid-cols-2 gap-4 rounded-md border border-border bg-surface p-5 sm:grid-cols-4">
-            <InfoField
-              label="Flota declarada"
-              value={data.vehicle_count ? String(data.vehicle_count) : 'Sin tope'}
-            />
-            <InfoField
-              label="Forma jurídica"
-              value={
-                COMPANY_LEGAL_FORM_LABELS[data.legal_form as CompanyLegalForm] ?? data.legal_form
-              }
-            />
-            <InfoField
-              label="Municipio"
-              value={data.municipality_name}
-              badge={!data.municipality_already_covered ? 'nuevo' : undefined}
-            />
-            <InfoField label="Contacto" value={data.contact_email ?? '—'} />
-          </section>
+      <section aria-label="Datos de la empresa" className="mx-auto mt-6 max-w-6xl px-6">
+        <p className="vy-eyebrow mb-3">Datos</p>
+        <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-4">
+          <InfoField
+            label="Flota declarada"
+            value={data.vehicle_count ? String(data.vehicle_count) : 'Sin tope'}
+          />
+          <InfoField
+            label="Forma jurídica"
+            value={
+              COMPANY_LEGAL_FORM_LABELS[data.legal_form as CompanyLegalForm] ?? data.legal_form
+            }
+          />
+          <InfoField
+            label="Municipio"
+            value={data.municipality_name}
+            badge={!data.municipality_already_covered ? 'nuevo' : undefined}
+          />
+          <InfoField label="Contacto" value={data.contact_email ?? '—'} />
+        </div>
 
-          {data.municipality_already_covered && (
-            <div role="alert" className="rounded-md border-2 border-amber bg-amber/10 p-4">
-              <p className="text-body font-medium text-text">
-                Municipio ya cubierto por otra empresa
-              </p>
-              <p className="mt-1 text-small text-text">
-                {ROUTING_LIMITATION_WARNING(
-                  data.municipality_name,
-                  data.municipality_active_company_name ?? 'otra empresa activa',
-                )}
-              </p>
-            </div>
-          )}
+        {data.municipality_already_covered && (
+          <Notice tone="warning" role="alert" className="mt-4">
+            <p className="font-bold">Municipio ya cubierto por otra empresa</p>
+            <p className="mt-1 text-small">
+              {ROUTING_LIMITATION_WARNING(
+                data.municipality_name,
+                data.municipality_active_company_name ?? 'otra empresa activa',
+              )}
+            </p>
+          </Notice>
+        )}
+      </section>
 
-          <section className="flex flex-col gap-3 rounded-md border border-border bg-surface p-5">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-title font-display text-text">Documentos legales</h2>
-              <span className="text-small text-text-muted">
-                {data.documents.filter((d) => d.verification === 'verified').length} de{' '}
-                {data.documents.length} verificados
-              </span>
-            </div>
-            {data.documents.map((doc) => (
-              <div
-                key={doc.company_document_id}
-                className={`flex items-center gap-3 rounded-item border p-3 ${
-                  doc.verification === 'rejected'
-                    ? 'border-amber bg-amber/10'
-                    : doc.verification === 'verified'
-                      ? 'border-success/40 bg-success/10'
-                      : 'border-border bg-surface-sunken'
-                }`}
-              >
-                <div className="flex-1">
-                  <p className="text-body font-medium text-text">
-                    {COMPANY_DOCUMENT_TYPE_LABELS[doc.type]}
-                  </p>
-                  <p className="text-small text-text-muted">
-                    {DOCUMENT_VERIFICATION_LABELS[doc.verification]}
-                    {doc.review_note ? ` · ${doc.review_note}` : ''}
-                    {doc.expires_at ? ` · vence ${doc.expires_at}` : ''}
-                  </p>
-                </div>
-                <a
-                  href={doc.download_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="focus-ring rounded-sm border border-border-input px-3 py-1.5 text-btn font-display text-text hover:bg-bg-shell"
-                >
-                  Descargar
-                </a>
+      <section aria-label="Documentos legales" className="mx-auto mt-8 max-w-6xl px-6">
+        <div className="flex items-baseline justify-between">
+          <p className="vy-eyebrow">Documentos legales</p>
+          <span className="text-small text-text-muted">
+            {data.documents.filter((d) => d.verification === 'verified').length} de{' '}
+            {data.documents.length} verificados
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-border pt-4 md:grid-cols-2">
+          {data.documents.map((doc) => (
+            <div
+              key={doc.company_document_id}
+              className={`flex items-center gap-3 rounded-item border p-3 ${
+                doc.verification === 'rejected'
+                  ? 'border-amber bg-amber/10'
+                  : doc.verification === 'verified'
+                    ? 'border-success/50 bg-success-tint dark:bg-success/15'
+                    : 'border-border-control bg-surface'
+              }`}
+            >
+              <div className="flex-1">
+                <p className="text-body font-bold text-text">
+                  {COMPANY_DOCUMENT_TYPE_LABELS[doc.type]}
+                </p>
+                <p className="text-small text-text-muted">
+                  {DOCUMENT_VERIFICATION_LABELS[doc.verification]}
+                  {doc.review_note ? ` · ${doc.review_note}` : ''}
+                  {doc.expires_at ? ` · vence ${doc.expires_at}` : ''}
+                </p>
               </div>
-            ))}
-          </section>
+              <a
+                href={doc.download_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonClassName('ghost')}
+              >
+                Descargar
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          {data.reviews.length > 0 && (
-            <section className="flex flex-col gap-3 rounded-md border border-border bg-surface p-5">
-              <h2 className="text-title font-display text-text">Historial de decisiones</h2>
-              <ul className="flex flex-col gap-3">
-                {data.reviews.map((review) => (
-                  <li key={review.company_review_id} className="border-l-2 border-l-border pl-3">
+      {data.reviews.length > 0 && (
+        <section aria-label="Historial de decisiones" className="mx-auto mt-8 max-w-6xl px-6">
+          <p className="vy-eyebrow mb-3">Historial de decisiones</p>
+          <div className="border-t border-border pt-4">
+            <Timeline
+              items={data.reviews.map((review) => ({
+                id: review.company_review_id,
+                label: COMPANY_DECISION_LABELS[review.decision],
+                timestamp: null,
+                done: true,
+                detail: (
+                  <>
                     <p className="text-body text-text">
-                      <span className="font-medium">
-                        {COMPANY_DECISION_LABELS[review.decision]}
-                      </span>{' '}
-                      · {review.reviewer_name} · {formatDate(review.decided_at)}
+                      {review.reviewer_name} · {formatDate(review.decided_at)}
                     </p>
                     {review.note && <p className="text-small text-text-muted">{review.note}</p>}
                     {review.acknowledged_routing_limitation && (
@@ -238,35 +262,37 @@ export function PlatformCompanyDetailPage(): JSX.Element {
                         {review.municipality_active_company_name}.
                       </p>
                     )}
-                  </li>
-                ))}
-              </ul>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => void onResend()}
-                  disabled={resendState === 'sending' || !online}
-                  className="focus-ring rounded-sm border border-border px-3 py-1.5 text-btn font-display text-text hover:bg-bg-shell disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {resendState === 'sending' ? 'Reenviando…' : 'Reenviar aviso'}
-                </button>
-                {resendState === 'sent' && (
-                  <p className="mt-1 text-small text-success-ink dark:text-success-ink-dark">
-                    Aviso reenviado.
-                  </p>
-                )}
-                {resendState === 'error' && (
-                  <p className="mt-1 text-small text-danger-ink dark:text-danger-ink-dark">
-                    No pudimos reenviar el aviso.
-                  </p>
-                )}
-              </div>
-            </section>
-          )}
-        </div>
+                  </>
+                ),
+              }))}
+            />
+            <div className="mt-4">
+              <Button
+                variant="ghost"
+                onClick={() => void onResend()}
+                disabled={!online}
+                loading={resendState === 'sending'}
+              >
+                {resendState === 'sending' ? 'Reenviando…' : 'Reenviar aviso'}
+              </Button>
+              {resendState === 'sent' && (
+                <p className="mt-1 text-small text-success-ink dark:text-success-ink-dark">
+                  Aviso reenviado.
+                </p>
+              )}
+              {resendState === 'error' && (
+                <p className="mt-1 text-small text-danger-ink dark:text-danger-ink-dark">
+                  No pudimos reenviar el aviso.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
-        <section className="flex flex-col gap-4 rounded-md border border-border bg-surface p-5">
-          <h2 className="text-title font-display text-text">Decisión</h2>
+      <section aria-label="Decisión" className="mt-10 border-y border-border bg-bg-shell py-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6">
+          <p className="vy-eyebrow">Decisión</p>
 
           {data.status !== 'pending' ? (
             <p className="text-body text-text-muted">
@@ -276,40 +302,26 @@ export function PlatformCompanyDetailPage(): JSX.Element {
           ) : (
             <>
               {actionError && (
-                <p
-                  role="alert"
-                  className="rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
-                >
+                <Notice tone="danger" role="alert">
                   {actionError}
-                </p>
+                </Notice>
               )}
 
               {mode === 'none' && (
-                <div className="flex flex-col gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setMode('approve')}
-                    disabled={!online}
-                    className="focus-ring h-tap rounded-sm bg-amber px-4 text-btn font-display text-on-brand hover:bg-amber-deep disabled:cursor-not-allowed disabled:opacity-60"
-                  >
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => setMode('approve')} disabled={!online}>
                     Aprobar empresa
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="secondary"
                     onClick={() => setMode('request-documents')}
                     disabled={!online}
-                    className="focus-ring h-tap rounded-sm border border-border-input bg-surface px-4 text-btn font-display text-text hover:bg-bg-shell disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Pedir documento faltante
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMode('reject')}
-                    disabled={!online}
-                    className="focus-ring h-tap rounded-sm border border-danger/40 bg-danger-tint px-4 text-btn font-display text-danger-ink hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
+                  </Button>
+                  <Button variant="danger" onClick={() => setMode('reject')} disabled={!online}>
                     Rechazar solicitud
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -348,8 +360,8 @@ export function PlatformCompanyDetailPage(): JSX.Element {
               )}
             </>
           )}
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -366,9 +378,13 @@ function InfoField({
   return (
     <div className="flex flex-col gap-1">
       <span className="text-eyebrow uppercase text-text-muted">{label}</span>
-      <span className="text-body font-medium text-text">
+      <span className="text-body font-bold text-text">
         {value}
-        {badge && <span className="ml-1 text-small font-normal text-clay">· {badge}</span>}
+        {badge && (
+          <span className="ml-1 text-small font-normal text-amber-ink dark:text-amber">
+            · {badge}
+          </span>
+        )}
       </span>
     </div>
   );
@@ -389,14 +405,17 @@ function mapDecisionError(error: unknown): string {
   return 'No pudimos guardar la decisión. Inténtalo de nuevo.';
 }
 
-interface ApprovePanelProps {
+interface DecisionPanelProps {
   companyId: number;
-  detail: PlatformCompanyDetail;
   actionInFlight: boolean;
   setActionInFlight: (v: boolean) => void;
   setActionError: (v: string | null) => void;
   onCancel: () => void;
   onDecided: (message: string, delivery: 'sent' | 'failed') => void;
+}
+
+interface ApprovePanelProps extends DecisionPanelProps {
+  detail: PlatformCompanyDetail;
 }
 
 function ApprovePanel({
@@ -443,43 +462,45 @@ function ApprovePanel({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="approve-base-fare" className="text-eyebrow uppercase text-text-muted">
-          Tarifa base inicial
-        </label>
-        <input
-          id="approve-base-fare"
-          type="number"
-          inputMode="numeric"
-          min={1000}
-          max={1_000_000}
-          step={500}
-          value={baseFare}
-          onChange={(event) => setBaseFare(event.target.value)}
-          className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric text-text outline-none"
-        />
-        <p className="text-small text-text-muted">
-          Obligatoria: ninguna empresa activa sale de aquí sin tarifa configurada.
-        </p>
-      </div>
+    <div className="flex max-w-xl flex-col gap-4">
+      <Field
+        label="Tarifa base inicial"
+        htmlFor="approve-base-fare"
+        hint="Obligatoria: ninguna empresa activa sale de aquí sin tarifa configurada."
+      >
+        {(control) => (
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1000}
+            max={1_000_000}
+            step={500}
+            value={baseFare}
+            onChange={(event) => setBaseFare(event.target.value)}
+            className="vy-input text-numeric"
+            {...control}
+          />
+        )}
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="approve-note" className="text-eyebrow uppercase text-text-muted">
-          Nota para la empresa
-        </label>
-        <textarea
-          id="approve-note"
-          rows={3}
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          className="rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-        />
-        <p className="text-small text-text-muted">Se envía por correo al contacto registrado.</p>
-      </div>
+      <Field
+        label="Nota para la empresa"
+        htmlFor="approve-note"
+        hint="Se envía por correo al contacto registrado."
+      >
+        {(control) => (
+          <textarea
+            rows={3}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            className="vy-input py-2"
+            {...control}
+          />
+        )}
+      </Field>
 
       {detail.municipality_already_covered && (
-        <label className="flex min-h-tap items-center gap-2.5 rounded-xs border border-amber/40 bg-amber/5 px-3 py-2">
+        <label className="flex min-h-tap items-center gap-2.5 rounded-xs border border-amber/50 bg-amber/10 px-3 py-2">
           <input
             type="checkbox"
             checked={ackRouting}
@@ -491,21 +512,12 @@ function ApprovePanel({
       )}
 
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="focus-ring h-tap flex-1 rounded-sm border border-border px-4 text-btn font-display text-text hover:bg-bg-shell"
-        >
+        <Button variant="ghost" onClick={onCancel} className="flex-1">
           Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
-          disabled={!canSubmit}
-          className="focus-ring h-tap flex-1 rounded-sm bg-amber px-4 text-btn font-display text-on-brand hover:bg-amber-deep disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        </Button>
+        <Button onClick={() => setConfirmOpen(true)} disabled={!canSubmit} className="flex-1">
           Aprobar empresa
-        </button>
+        </Button>
       </div>
 
       <ConfirmDialog
@@ -516,6 +528,7 @@ function ApprovePanel({
         onConfirm={() => void onConfirm()}
         onCancel={() => setConfirmOpen(false)}
         confirmDisabled={actionInFlight}
+        confirming={actionInFlight}
       >
         <p>
           Aprobar habilita a <strong>{detail.legal_name}</strong> para crear conductores
@@ -528,15 +541,6 @@ function ApprovePanel({
   );
 }
 
-interface RequestDocumentsPanelProps {
-  companyId: number;
-  actionInFlight: boolean;
-  setActionInFlight: (v: boolean) => void;
-  setActionError: (v: string | null) => void;
-  onCancel: () => void;
-  onDecided: (message: string, delivery: 'sent' | 'failed') => void;
-}
-
 function RequestDocumentsPanel({
   companyId,
   actionInFlight,
@@ -544,7 +548,7 @@ function RequestDocumentsPanel({
   setActionError,
   onCancel,
   onDecided,
-}: RequestDocumentsPanelProps): JSX.Element {
+}: DecisionPanelProps): JSX.Element {
   const [selected, setSelected] = useState<CompanyDocumentType[]>([]);
   const [note, setNote] = useState('');
 
@@ -573,13 +577,13 @@ function RequestDocumentsPanel({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <fieldset className="flex flex-col gap-2">
+    <div className="flex max-w-xl flex-col gap-4">
+      <fieldset className="flex flex-col gap-1">
         <legend className="mb-1 text-eyebrow uppercase text-text-muted">Documentos a pedir</legend>
         {REQUIRED_COMPANY_DOCUMENT_TYPES.map((type) => (
           <label
             key={type}
-            className="flex min-h-tap items-center gap-2.5 rounded-xs px-2 hover:bg-bg-shell"
+            className="flex min-h-tap items-center gap-2.5 rounded-xs px-2 hover:bg-bg"
           >
             <input
               type="checkbox"
@@ -592,48 +596,35 @@ function RequestDocumentsPanel({
         ))}
       </fieldset>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="request-note" className="text-eyebrow uppercase text-text-muted">
-          Nota para la empresa
-        </label>
-        <textarea
-          id="request-note"
-          rows={3}
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Explica qué falta o por qué se rechazó."
-          className="rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-        />
-      </div>
+      <Field label="Nota para la empresa" htmlFor="request-note">
+        {(control) => (
+          <textarea
+            rows={3}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Explica qué falta o por qué se rechazó."
+            className="vy-input py-2"
+            {...control}
+          />
+        )}
+      </Field>
 
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="focus-ring h-tap flex-1 rounded-sm border border-border px-4 text-btn font-display text-text hover:bg-bg-shell"
-        >
+        <Button variant="ghost" onClick={onCancel} className="flex-1">
           Cancelar
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="secondary"
           onClick={() => void onSubmit()}
-          disabled={!canSubmit || actionInFlight}
-          className="focus-ring h-tap flex-1 rounded-sm border border-border-input bg-surface px-4 text-btn font-display text-text hover:bg-bg-shell disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!canSubmit}
+          loading={actionInFlight}
+          className="flex-1"
         >
           {actionInFlight ? 'Enviando…' : 'Pedir documento'}
-        </button>
+        </Button>
       </div>
     </div>
   );
-}
-
-interface RejectPanelProps {
-  companyId: number;
-  actionInFlight: boolean;
-  setActionInFlight: (v: boolean) => void;
-  setActionError: (v: string | null) => void;
-  onCancel: () => void;
-  onDecided: (message: string, delivery: 'sent' | 'failed') => void;
 }
 
 function RejectPanel({
@@ -643,7 +634,7 @@ function RejectPanel({
   setActionError,
   onCancel,
   onDecided,
-}: RejectPanelProps): JSX.Element {
+}: DecisionPanelProps): JSX.Element {
   const [note, setNote] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const canSubmit = note.trim().length >= 10;
@@ -664,37 +655,35 @@ function RejectPanel({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="reject-note" className="text-eyebrow uppercase text-text-muted">
-          Motivo del rechazo
-        </label>
-        <textarea
-          id="reject-note"
-          rows={3}
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          className="rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-        />
-        <p className="text-small text-text-muted">Se envía por correo al contacto registrado.</p>
-      </div>
+    <div className="flex max-w-xl flex-col gap-4">
+      <Field
+        label="Motivo del rechazo"
+        htmlFor="reject-note"
+        hint="Se envía por correo al contacto registrado."
+      >
+        {(control) => (
+          <textarea
+            rows={3}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            className="vy-input py-2"
+            {...control}
+          />
+        )}
+      </Field>
 
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="focus-ring h-tap flex-1 rounded-sm border border-border px-4 text-btn font-display text-text hover:bg-bg-shell"
-        >
+        <Button variant="ghost" onClick={onCancel} className="flex-1">
           Cancelar
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="danger"
           onClick={() => setConfirmOpen(true)}
           disabled={!canSubmit}
-          className="focus-ring h-tap flex-1 rounded-sm border border-danger/40 bg-danger-tint px-4 text-btn font-display text-danger-ink hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1"
         >
           Rechazar solicitud
-        </button>
+        </Button>
       </div>
 
       <ConfirmDialog
@@ -705,6 +694,8 @@ function RejectPanel({
         onConfirm={() => void onConfirm()}
         onCancel={() => setConfirmOpen(false)}
         confirmDisabled={actionInFlight}
+        confirmTone="danger"
+        confirming={actionInFlight}
       >
         <p>Esta empresa no podrá registrar conductores ni recibir solicitudes de viaje.</p>
       </ConfirmDialog>

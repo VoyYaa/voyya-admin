@@ -1,21 +1,41 @@
 import type { JSX, ReactNode } from 'react';
+import { Wordmark } from '../ui/Wordmark';
+
+export interface PublicHero {
+  eyebrow: string;
+  title: string;
+  lede?: string;
+  role?: 'status' | 'alert';
+}
 
 interface PublicPageShellProps {
   children: ReactNode;
+  hero?: PublicHero;
 }
 
-export function PublicPageShell({ children }: PublicPageShellProps): JSX.Element {
+export function PublicPageShell({ children, hero }: PublicPageShellProps): JSX.Element {
   return (
     <div className="flex min-h-screen flex-col bg-bg">
       <header className="flex h-16 shrink-0 items-center gap-2.5 border-b-2 border-b-amber bg-frame-bg px-6 sm:px-10">
-        <span
-          aria-hidden="true"
-          className="relative inline-flex h-3 w-3 shrink-0 rounded-full bg-amber shadow-brand-halo"
-        />
-        <span className="text-title font-display font-black tracking-tight text-frame-text">
-          VoyYa
-        </span>
+        <Wordmark />
       </header>
+
+      {hero && (
+        <section className="bg-frame-bg px-6 pb-12 pt-10 sm:px-10 lg:px-16">
+          <div className="mx-auto max-w-4xl">
+            <p className="vy-eyebrow mb-3 !text-amber">{hero.eyebrow}</p>
+            <h1
+              role={hero.role}
+              className="max-w-[24ch] font-display text-hero font-black text-frame-text"
+            >
+              {hero.title}
+            </h1>
+            {hero.lede && (
+              <p className="mt-4 max-w-[62ch] text-lede text-frame-text-muted">{hero.lede}</p>
+            )}
+          </div>
+        </section>
+      )}
 
       <main className="flex-1 px-6 py-10 sm:px-10 sm:py-14 lg:px-16">{children}</main>
     </div>

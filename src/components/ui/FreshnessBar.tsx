@@ -19,8 +19,8 @@ export interface FreshnessBarProps {
 
 const STATE_DOT_CLASS: Record<FreshnessState, string> = {
   live: 'bg-success',
-  reconnecting: 'bg-amber',
-  offline: 'bg-danger',
+  reconnecting: 'bg-info',
+  offline: 'bg-info',
   error: 'bg-danger',
   stale: 'bg-status-neutral',
 };

@@ -2,8 +2,12 @@ import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } f
 import type { ConsoleSettings, UpdateConsoleSettingsDTO } from '@voyyaa/shared';
 import { getConsoleSettings, updateConsoleSettings } from '../api/admin-settings.api';
 import { domainErrorCode, domainErrorField, isNetworkError } from '../api/errors';
+import { StateGlyph } from '../components/brand/StateGlyph';
+import { Button } from '../components/ui/Button';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { ErrorPanel } from '../components/ui/TableStates';
+import { Notice } from '../components/ui/Notice';
+import { ProgressRail } from '../components/ui/ProgressRail';
+import { ErrorPanel, SkeletonBlock } from '../components/ui/TableStates';
 import { useAsync } from '../hooks/useAsync';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
 import { useToastStore } from '../state/toast-store';
@@ -118,15 +122,19 @@ export function AdminSettingsPage(): JSX.Element {
 
   if (isInitialLoading) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-8">
-        <div className="space-y-6 rounded-md border border-border bg-surface p-6">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-24 animate-pulse rounded-xs bg-bg-shell motion-reduce:animate-none"
-            />
-          ))}
-        </div>
+      <div role="status" aria-label="Cargando parámetros" className="mx-auto max-w-2xl px-6 py-8">
+        <ProgressRail className="mb-6" />
+        <SkeletonBlock className="mb-2 h-3 w-24" />
+        <SkeletonBlock className="mb-8 h-8 w-48" />
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="mb-8 border-t border-border pt-6">
+            <SkeletonBlock className="mb-4 h-5 w-40" />
+            <div className="flex items-center justify-between gap-4">
+              <SkeletonBlock className="h-4 w-1/3" />
+              <SkeletonBlock className="h-tap w-28" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -139,49 +147,52 @@ export function AdminSettingsPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8 pb-28">
-      <p className="mb-1 text-eyebrow uppercase text-amber-ink dark:text-amber">Configuración</p>
-      <h1 className="mb-6 text-display font-display text-text">Parámetros</h1>
+      <p className="vy-eyebrow mb-1">Configuración</p>
+      <h1 className="mb-6 font-display text-display text-text">Parámetros</h1>
 
       {conflict && (
-        <div className="mb-6 rounded-xs border border-amber/40 bg-amber/10 px-4 py-3">
-          <p className="text-body text-text">
-            Alguien más actualizó los parámetros mientras editabas. Revisa los valores actuales
-            antes de guardar.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setConflict(false);
-              refetch();
-            }}
-            className="focus-ring mt-2 rounded-sm border border-border px-3 py-1.5 text-btn font-display text-text hover:bg-bg-shell"
-          >
-            Ver valores actuales
-          </button>
-        </div>
+        <Notice
+          tone="warning"
+          role="alert"
+          className="mb-6"
+          leading={<StateGlyph glyph="error" size={32} />}
+          action={
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setConflict(false);
+                refetch();
+              }}
+            >
+              Ver valores actuales
+            </Button>
+          }
+        >
+          Alguien más actualizó los parámetros mientras editabas. Revisa los valores actuales antes
+          de guardar.
+        </Notice>
       )}
 
       {!online && (
-        <p
+        <Notice
+          tone="info"
           role="alert"
-          className="mb-6 rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
+          className="mb-6"
+          leading={<StateGlyph glyph="offline" size={32} />}
         >
           Sin conexión · no se puede guardar ahora.
-        </p>
+        </Notice>
       )}
 
       {fieldError && fieldError.field === '' && (
-        <p
-          role="alert"
-          className="mb-6 rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
-        >
+        <Notice tone="danger" role="alert" className="mb-6">
           {fieldError.message}
-        </p>
+        </Notice>
       )}
 
-      <div className="rounded-md border border-border bg-surface p-6">
-        <section className="mb-8 border-b border-border pb-6">
-          <h2 className="mb-3 text-title font-display text-text">Tarifa base</h2>
+      <div>
+        <section className="mb-8 border-t border-border pt-6">
+          <h2 className="mb-3 font-display text-title text-text">Tarifa base</h2>
           <SettingsRow
             label={FIELD_LABELS.base_fare}
             inputId={fieldInputId('base_fare')}
@@ -196,13 +207,13 @@ export function AdminSettingsPage(): JSX.Element {
               id={fieldInputId('base_fare')}
               value={draft.base_fare}
               onChange={(event) => setField('base_fare', Number(event.target.value))}
-              className="focus-ring h-tap w-40 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
+              className="vy-input w-40 text-numeric"
             />
           </SettingsRow>
         </section>
 
-        <section className="mb-8 border-b border-border pb-6">
-          <h2 className="mb-3 text-title font-display text-text">Recargos</h2>
+        <section className="mb-8 border-t border-border pt-6">
+          <h2 className="mb-3 font-display text-title text-text">Recargos</h2>
           <SettingsRow
             label={FIELD_LABELS.night_surcharge_pct}
             inputId={fieldInputId('night_surcharge_pct')}
@@ -218,7 +229,7 @@ export function AdminSettingsPage(): JSX.Element {
               id={fieldInputId('night_surcharge_pct')}
               value={draft.night_surcharge_pct}
               onChange={(event) => setField('night_surcharge_pct', Number(event.target.value))}
-              className="focus-ring h-tap w-28 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
+              className="vy-input w-28 text-numeric"
             />
           </SettingsRow>
           <SettingsRow
@@ -236,19 +247,19 @@ export function AdminSettingsPage(): JSX.Element {
               id={fieldInputId('holiday_surcharge_pct')}
               value={draft.holiday_surcharge_pct}
               onChange={(event) => setField('holiday_surcharge_pct', Number(event.target.value))}
-              className="focus-ring h-tap w-28 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
+              className="vy-input w-28 text-numeric"
             />
           </SettingsRow>
         </section>
 
-        <section className="mb-8 border-b border-border pb-6">
-          <h2 className="mb-3 text-title font-display text-text">Comisión por viaje</h2>
+        <section className="mb-8 border-t border-border pt-6">
+          <h2 className="mb-3 font-display text-title text-text">Comisión por viaje</h2>
           <p className="text-numeric text-title text-text">{data.commission_pct}%</p>
           <p className="text-small text-text-muted">No editable en este ciclo.</p>
         </section>
 
-        <section className="mb-8">
-          <h2 className="mb-3 text-title font-display text-text">Parámetros de asignación</h2>
+        <section className="mb-8 border-t border-border pt-6">
+          <h2 className="mb-3 font-display text-title text-text">Parámetros de asignación</h2>
           <SettingsRow
             label={FIELD_LABELS.search_radius_km}
             inputId={fieldInputId('search_radius_km')}
@@ -263,7 +274,7 @@ export function AdminSettingsPage(): JSX.Element {
               id={fieldInputId('search_radius_km')}
               value={draft.search_radius_km}
               onChange={(event) => setField('search_radius_km', Number(event.target.value))}
-              className="focus-ring h-tap w-28 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
+              className="vy-input w-28 text-numeric"
             />
           </SettingsRow>
           <SettingsRow
@@ -280,29 +291,23 @@ export function AdminSettingsPage(): JSX.Element {
               id={fieldInputId('acceptance_timeout_sec')}
               value={draft.acceptance_timeout_sec}
               onChange={(event) => setField('acceptance_timeout_sec', Number(event.target.value))}
-              className="focus-ring h-tap w-28 rounded-xs border border-border bg-surface px-3 text-numeric text-text outline-none"
+              className="vy-input w-28 text-numeric"
             />
           </SettingsRow>
         </section>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
-        <button
-          type="button"
-          onClick={discardChanges}
-          disabled={!hasChanges}
-          className="focus-ring rounded-sm border border-border px-4 py-2 text-btn font-display text-text hover:bg-bg-shell disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <div className="fixed inset-x-0 bottom-0 z-30 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
+        <Button variant="ghost" onClick={discardChanges} disabled={!hasChanges}>
           Descartar cambios
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={() => setConfirmOpen(true)}
-          disabled={!hasChanges || !online || saving}
-          className="focus-ring rounded-sm bg-amber px-4 py-2 text-btn font-display text-on-brand hover:bg-amber-deep disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!hasChanges || !online}
+          loading={saving}
         >
           {saving ? 'Guardando…' : 'Guardar cambios'}
-        </button>
+        </Button>
       </div>
 
       <ConfirmDialog
@@ -313,6 +318,7 @@ export function AdminSettingsPage(): JSX.Element {
         onConfirm={() => void onSave()}
         onCancel={() => setConfirmOpen(false)}
         confirmDisabled={saving}
+        confirming={saving}
       >
         <div className="space-y-2">
           <table className="w-full text-small">
@@ -355,14 +361,22 @@ function SettingsRow({
   children,
 }: SettingsRowProps): JSX.Element {
   return (
-    <div className="flex h-row-lg items-center justify-between gap-4 border-b border-border last:border-b-0">
+    <div className="flex min-h-row-lg items-center justify-between gap-4 border-b border-border py-2 last:border-b-0">
       <div>
-        <label htmlFor={inputId} className="flex items-center gap-2 text-body text-text">
-          {dirty && <span className="h-1.5 w-1.5 rounded-full bg-amber" aria-hidden="true" />}
-          {label}
-        </label>
+        <div className="flex items-center gap-2">
+          <label htmlFor={inputId} className="text-body text-text">
+            {label}
+          </label>
+          {dirty && (
+            <span className="text-small font-bold text-amber-ink dark:text-amber">Modificado</span>
+          )}
+        </div>
         {helper && <p className="text-small text-text-muted">{helper}</p>}
-        {error && <p className="text-small text-danger-ink dark:text-danger-ink-dark">{error}</p>}
+        {error && (
+          <p className="text-small font-semibold text-danger-ink dark:text-danger-ink-dark">
+            {error}
+          </p>
+        )}
       </div>
       {children}
     </div>

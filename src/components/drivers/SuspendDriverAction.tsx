@@ -5,6 +5,7 @@ import { ApiError, domainErrorCode, isNetworkError } from '../../api/errors';
 import { SUSPEND_DRIVER_COPY } from '../../copy/drivers';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
 import { useToastStore } from '../../state/toast-store';
+import { Button } from '../ui/Button';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 export interface SuspendDriverActionProps {
@@ -66,17 +67,16 @@ export function SuspendDriverAction({
 
   return (
     <div>
-      <button
-        type="button"
+      <Button
+        variant="danger"
         onClick={() => {
           setErrorMessage(null);
           setConfirmOpen(true);
         }}
         disabled={!online || working}
-        className="focus-ring h-tap rounded-sm border border-danger/50 px-4 text-btn font-display text-danger-ink hover:bg-danger-tint disabled:cursor-not-allowed disabled:opacity-60 dark:text-danger-ink-dark"
       >
         {working ? SUSPEND_DRIVER_COPY.actionBusy : SUSPEND_DRIVER_COPY.action}
-      </button>
+      </Button>
       {!online && <p className="mt-1 text-small text-text-muted">{SUSPEND_DRIVER_COPY.offline}</p>}
       {errorMessage && (
         <p role="alert" className="mt-1 text-small text-danger-ink dark:text-danger-ink-dark">
@@ -91,6 +91,8 @@ export function SuspendDriverAction({
         onConfirm={() => void onConfirm()}
         onCancel={closeDialog}
         confirmDisabled={working}
+        confirmTone="danger"
+        confirming={working}
       >
         <p>{SUSPEND_DRIVER_COPY.dialogBody(fullName)}</p>
       </ConfirmDialog>

@@ -6,7 +6,11 @@ import {
   type PlatformCompanyStatusFilter,
 } from '@voyyaa/shared';
 import { getPlatformCompanies } from '../api/platform-companies.api';
+import { Button } from '../components/ui/Button';
+import { Notice } from '../components/ui/Notice';
+import { PageToolbar } from '../components/ui/PageToolbar';
 import { EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStates';
+import { ROW_CLASS, TABLE_HEAD_CLASS, TH_CLASS } from '../components/ui/table-styles';
 import { PLATFORM_EMPTY_COPY } from '../copy/affiliation';
 import { useAsync } from '../hooks/useAsync';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
@@ -25,12 +29,12 @@ const STATUS_FILTER_LABELS: Record<PlatformCompanyStatusFilter, string> = {
 function CompaniesColGroup(): JSX.Element {
   return (
     <colgroup>
-      <col style={{ width: '28%' }} />
+      <col style={{ width: '26%' }} />
       <col style={{ width: '22%' }} />
       <col style={{ width: '12%' }} />
       <col style={{ width: '16%' }} />
-      <col style={{ width: '14%' }} />
-      <col style={{ width: '8%' }} />
+      <col style={{ width: '13%' }} />
+      <col style={{ width: '11%' }} />
     </colgroup>
   );
 }
@@ -58,22 +62,20 @@ export function PlatformCompaniesPage(): JSX.Element {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-6 py-3">
-        <div>
-          <p className="text-eyebrow uppercase text-amber-ink dark:text-amber">Plataforma</p>
-          <h1 className="text-display font-display text-text">Empresas</h1>
-          {typeof data?.pending_count === 'number' && (
-            <p className="text-small text-text-muted">
-              {data.pending_count} solicitud{data.pending_count === 1 ? '' : 'es'} pendiente
-              {data.pending_count === 1 ? '' : 's'}
-            </p>
-          )}
-        </div>
+      <PageToolbar
+        eyebrow="Plataforma"
+        title="Empresas"
+        subtitle={
+          typeof data?.pending_count === 'number'
+            ? `${data.pending_count} solicitud${data.pending_count === 1 ? '' : 'es'} pendiente${data.pending_count === 1 ? '' : 's'}`
+            : undefined
+        }
+      >
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value as PlatformCompanyStatusFilter)}
           aria-label="Filtrar por estado"
-          className="focus-ring rounded-xs border border-border bg-surface px-3 py-1.5 text-body text-text"
+          className="vy-input w-auto"
         >
           {STATUS_OPTIONS.map((option) => (
             <option key={option} value={option}>
@@ -82,23 +84,15 @@ export function PlatformCompaniesPage(): JSX.Element {
           ))}
         </select>
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={refetch}
-          disabled={!online}
-          className="focus-ring rounded-sm border border-border px-3 py-1.5 text-btn font-display text-text hover:bg-bg-shell disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button variant="ghost" onClick={refetch} disabled={!online}>
           Actualizar
-        </button>
-      </div>
+        </Button>
+      </PageToolbar>
 
       {!online && (
-        <p
-          role="alert"
-          className="mx-6 mt-3 rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
-        >
+        <Notice tone="info" role="alert" className="mx-6 mt-3">
           Sin conexión · la lista puede estar desactualizada.
-        </p>
+        </Notice>
       )}
 
       <div className="flex-1 overflow-y-auto bg-surface">
@@ -110,7 +104,11 @@ export function PlatformCompaniesPage(): JSX.Element {
             </tbody>
           </table>
         ) : status === 'error' && !data ? (
-          <ErrorPanel title="No pudimos cargar las empresas." onRetry={refetch} />
+          <ErrorPanel
+            title="No pudimos cargar las empresas."
+            onRetry={refetch}
+            variant={online ? 'error' : 'offline'}
+          />
         ) : rows.length === 0 ? (
           <EmptyPanel
             title={
@@ -122,27 +120,24 @@ export function PlatformCompaniesPage(): JSX.Element {
         ) : (
           <table className="w-full table-fixed border-collapse">
             <CompaniesColGroup />
-            <thead className="sticky top-0 z-10 bg-surface-sunken">
+            <thead className={TABLE_HEAD_CLASS}>
               <tr>
-                <th
-                  scope="col"
-                  className="py-2 pl-4 pr-4 text-left text-table-header text-text-muted"
-                >
+                <th scope="col" className={TH_CLASS}>
                   Empresa
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Municipio
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Flota
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Recibida
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Estado
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   <span className="sr-only">Acciones</span>
                 </th>
               </tr>
@@ -165,9 +160,9 @@ export function PlatformCompaniesPage(): JSX.Element {
 
 function CompanyRow({ row, onView }: { row: PlatformCompanyRow; onView: () => void }): JSX.Element {
   return (
-    <tr className="h-row-lg border-b border-border transition-colors duration-300 hover:bg-bg-shell motion-reduce:transition-none">
+    <tr className={`${ROW_CLASS} hover:bg-bg-shell`}>
       <td className="py-2 pl-4 pr-4">
-        <p className="text-body font-medium text-text">{row.legal_name}</p>
+        <p className="text-body font-bold text-text">{row.legal_name}</p>
         <p className="text-numeric text-small text-text-muted">NIT {row.tax_id}</p>
       </td>
       <td className="px-4 py-2 text-body text-text">
@@ -188,15 +183,10 @@ function CompanyRow({ row, onView }: { row: PlatformCompanyRow; onView: () => vo
           label={COMPANY_STATUS_LABELS[row.status]}
         />
       </td>
-      <td className="px-4 py-2 text-right">
-        <button
-          type="button"
-          onClick={onView}
-          aria-label={`Ver detalle de ${row.legal_name}`}
-          className="focus-ring rounded-sm px-2 py-1 text-small font-medium text-text hover:bg-bg-shell"
-        >
+      <td className="px-2 py-2 text-right">
+        <Button variant="ghost" onClick={onView} aria-label={`Ver detalle de ${row.legal_name}`}>
           Ver
-        </button>
+        </Button>
       </td>
     </tr>
   );

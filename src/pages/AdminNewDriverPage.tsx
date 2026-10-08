@@ -1,30 +1,43 @@
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type FieldErrors } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import {
   AdminErrorCode,
   CreateDriverDTO,
-  DOCUMENT_ALLOWED_CONTENT_TYPES,
-  DOCUMENT_MAX_BYTES,
   REQUIRED_DRIVER_DOCUMENT_TYPES,
   type DriverDocumentInput,
   type DriverDocumentType,
 } from '@voyyaa/shared';
 import { createDriver, getFleetQuota, uploadDriverDocument } from '../api/admin-drivers.api';
 import { domainErrorCode, domainErrorDetails, isNetworkError } from '../api/errors';
+import { StateGlyph } from '../components/brand/StateGlyph';
+import { DocumentSlotCard } from '../components/documents/DocumentSlotCard';
+import { Button } from '../components/ui/Button';
+import { buttonClassName } from '../components/ui/button-styles';
+import { Field } from '../components/ui/Field';
+import { Notice } from '../components/ui/Notice';
+import { StepRail } from '../components/ui/StepRail';
 import {
   DRIVER_CREATE_ERROR_MESSAGES,
   DOCUMENT_UPLOAD_ERROR_MESSAGES,
   FLEET_QUOTA_COPY,
 } from '../copy/affiliation';
+import { NEW_DRIVER_COPY } from '../copy/drivers';
+import { useActiveSection } from '../hooks/useActiveSection';
 import { useAsync } from '../hooks/useAsync';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
+import {
+  createInitialDocumentSlot,
+  validateDocumentFileClientSide,
+  type DocumentSlot,
+} from '../lib/document-slots';
 import { spanishZodResolver } from '../lib/form-resolver';
 import { DRIVER_DOCUMENT_TYPE_LABELS } from '../lib/status-maps';
 import { useToastStore } from '../state/toast-store';
 
 const DRAFT_KEY = 'voyya_admin_new_driver_draft';
+const SECTION_IDS = ['driver-personal', 'driver-vehicle', 'driver-documents'] as const;
 
 const PersonalVehicleDTO = CreateDriverDTO.omit({ documents: true });
 type PersonalVehicleForm = z.infer<typeof PersonalVehicleDTO>;
@@ -41,6 +54,18 @@ const CONFLICT_FIELD_MAP: Partial<
   PLATE_TAKEN: { field: 'vehicle.plate', message: 'Esta placa ya está registrada.' },
 };
 
+const FIELD_SUMMARY_LABELS: Record<string, string> = {
+  first_name: 'Nombres',
+  last_name: 'Apellidos',
+  national_id: 'Cédula',
+  phone: 'Teléfono',
+  email: 'Correo',
+  license: 'Licencia',
+  'vehicle.plate': 'Placa',
+  'vehicle.model': 'Modelo',
+  'vehicle.year': 'Año',
+};
+
 function readDraft(): Partial<PersonalVehicleForm> | null {
   const raw = window.localStorage.getItem(DRAFT_KEY);
   if (!raw) return null;
@@ -51,43 +76,13 @@ function readDraft(): Partial<PersonalVehicleForm> | null {
   }
 }
 
-interface DocumentSlot {
-  fileName: string | null;
-  storageKey: string | null;
-  issuedAt: string;
-  expiresAt: string;
-  status: 'idle' | 'uploading' | 'uploaded' | 'error';
-  errorMessage: string | null;
-}
-
-function initialSlot(): DocumentSlot {
-  return {
-    fileName: null,
-    storageKey: null,
-    issuedAt: '',
-    expiresAt: '',
-    status: 'idle',
-    errorMessage: null,
-  };
-}
-
 type DocumentSlots = Record<DriverDocumentType, DocumentSlot>;
 
 function initialSlots(): DocumentSlots {
   return REQUIRED_DRIVER_DOCUMENT_TYPES.reduce((acc, type) => {
-    acc[type] = initialSlot();
+    acc[type] = createInitialDocumentSlot();
     return acc;
   }, {} as DocumentSlots);
-}
-
-function validateFileClientSide(file: File): string | null {
-  if (!(DOCUMENT_ALLOWED_CONTENT_TYPES as readonly string[]).includes(file.type)) {
-    return 'Formato no permitido. Usa PDF, JPG o PNG.';
-  }
-  if (file.size > DOCUMENT_MAX_BYTES) {
-    return 'El archivo supera el tamaño máximo de 5 MB.';
-  }
-  return null;
 }
 
 function buildDocumentsPayload(slots: DocumentSlots): DriverDocumentInput[] | null {
@@ -107,6 +102,23 @@ function buildDocumentsPayload(slots: DocumentSlots): DriverDocumentInput[] | nu
   });
 }
 
+function collectErrorSummary(errors: FieldErrors<PersonalVehicleForm>): ErrorSummaryItem[] {
+  const items: ErrorSummaryItem[] = [];
+  const push = (name: string, message: string | undefined): void => {
+    if (message) items.push({ fieldId: name, label: FIELD_SUMMARY_LABELS[name] ?? name, message });
+  };
+  push('first_name', errors.first_name?.message);
+  push('last_name', errors.last_name?.message);
+  push('national_id', errors.national_id?.message);
+  push('phone', errors.phone?.message);
+  push('email', errors.email?.message);
+  push('license', errors.license?.message);
+  push('vehicle.plate', errors.vehicle?.plate?.message);
+  push('vehicle.model', errors.vehicle?.model?.message);
+  push('vehicle.year', errors.vehicle?.year?.message);
+  return items;
+}
+
 export function AdminNewDriverPage(): JSX.Element {
   const navigate = useNavigate();
   const online = useNetworkOnline();
@@ -115,6 +127,7 @@ export function AdminNewDriverPage(): JSX.Element {
   const [documentsError, setDocumentsError] = useState<string | null>(null);
   const [slots, setSlots] = useState<DocumentSlots>(initialSlots);
   const [submitting, setSubmitting] = useState(false);
+  const activeSection = useActiveSection(SECTION_IDS);
 
   const quotaFetcher = useCallback(() => getFleetQuota(), []);
   const {
@@ -131,7 +144,7 @@ export function AdminNewDriverPage(): JSX.Element {
     watch,
     setError,
     reset,
-    formState: { errors, isValid },
+    formState: { errors, isValid, submitCount },
   } = useForm<PersonalVehicleForm>({
     resolver: spanishZodResolver(PersonalVehicleDTO),
     mode: 'onChange',
@@ -159,7 +172,7 @@ export function AdminNewDriverPage(): JSX.Element {
 
   const onFileSelected = async (type: DriverDocumentType, file: File): Promise<void> => {
     setDocumentsError(null);
-    const clientError = validateFileClientSide(file);
+    const clientError = validateDocumentFileClientSide(file);
     if (clientError) {
       setSlot(type, { status: 'error', errorMessage: clientError, fileName: file.name });
       return;
@@ -224,7 +237,11 @@ export function AdminNewDriverPage(): JSX.Element {
       const code = domainErrorCode(error);
       const conflict = code ? CONFLICT_FIELD_MAP[code as AdminErrorCode] : undefined;
       if (conflict) {
-        setError(conflict.field, { type: 'server', message: conflict.message });
+        setError(
+          conflict.field,
+          { type: 'server', message: conflict.message },
+          { shouldFocus: true },
+        );
         return;
       }
       if (code === 'FLEET_LIMIT_REACHED') {
@@ -259,18 +276,15 @@ export function AdminNewDriverPage(): JSX.Element {
     }
   });
 
-  const isSubmitting = submitting;
+  const summaryItems = submitCount > 0 ? collectErrorSummary(errors) : [];
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
-      <p className="mb-1 text-eyebrow uppercase text-amber-ink dark:text-amber">Flota</p>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-display font-display text-text">Registrar conductor</h1>
-        <Link
-          to="/ops/drivers"
-          className="focus-ring rounded-sm text-small font-medium text-text-muted hover:text-text"
-        >
-          ← Volver a Conductores
+    <div className="mx-auto max-w-5xl px-6 py-8 pb-28">
+      <p className="vy-eyebrow mb-1">{NEW_DRIVER_COPY.eyebrow}</p>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="font-display text-display text-text">{NEW_DRIVER_COPY.title}</h1>
+        <Link to="/ops/drivers" className={buttonClassName('ghost')}>
+          {NEW_DRIVER_COPY.back}
         </Link>
       </div>
 
@@ -282,191 +296,238 @@ export function AdminNewDriverPage(): JSX.Element {
       />
 
       {!online && (
-        <p
+        <Notice
+          tone="info"
           role="alert"
-          className="mb-4 rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
+          className="mb-4"
+          leading={<StateGlyph glyph="offline" size={28} />}
         >
           Sin conexión · no se puede crear el conductor ahora.
-        </p>
+        </Notice>
       )}
 
-      <form onSubmit={onSubmit} noValidate className="space-y-6 pb-24">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="flex flex-col gap-6">
-            <div className="space-y-8 rounded-md border border-border bg-surface p-6">
-              <fieldset disabled={isSubmitting} className="space-y-4">
-                <legend className="mb-2 text-title font-display text-text">Datos personales</legend>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <Field label="Nombres" htmlFor="first_name" error={errors.first_name?.message}>
+      <ErrorSummary items={summaryItems} extra={[documentsError, serverError]} />
+
+      <form onSubmit={onSubmit} noValidate className="lg:grid lg:grid-cols-[180px_1fr] lg:gap-10">
+        <aside aria-label={NEW_DRIVER_COPY.railLabel} className="hidden lg:block">
+          <div className="sticky top-8">
+            <StepRail
+              steps={NEW_DRIVER_COPY.sections}
+              current={activeSection}
+              orientation="vertical"
+            />
+          </div>
+        </aside>
+
+        <div className="flex flex-col gap-10">
+          <section id={SECTION_IDS[0]} className="border-t border-border pt-6">
+            <fieldset disabled={submitting}>
+              <legend className="vy-eyebrow mb-4">{NEW_DRIVER_COPY.sections[0]}</legend>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Nombres" htmlFor="first_name" error={errors.first_name?.message}>
+                  {(control) => (
+                    <input className="vy-input" {...control} {...register('first_name')} />
+                  )}
+                </Field>
+                <Field label="Apellidos" htmlFor="last_name" error={errors.last_name?.message}>
+                  {(control) => (
+                    <input className="vy-input" {...control} {...register('last_name')} />
+                  )}
+                </Field>
+                <Field label="Cédula" htmlFor="national_id" error={errors.national_id?.message}>
+                  {(control) => (
                     <input
-                      id="first_name"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-                      {...register('first_name')}
-                    />
-                  </Field>
-                  <Field label="Apellidos" htmlFor="last_name" error={errors.last_name?.message}>
-                    <input
-                      id="last_name"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-                      {...register('last_name')}
-                    />
-                  </Field>
-                  <Field label="Cédula" htmlFor="national_id" error={errors.national_id?.message}>
-                    <input
-                      id="national_id"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric text-text outline-none"
+                      inputMode="numeric"
+                      className="vy-input text-numeric"
+                      {...control}
                       {...register('national_id')}
                     />
-                  </Field>
-                  <Field label="Teléfono" htmlFor="phone" error={errors.phone?.message}>
+                  )}
+                </Field>
+                <Field label="Teléfono" htmlFor="phone" error={errors.phone?.message}>
+                  {(control) => (
                     <input
-                      id="phone"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric text-text outline-none"
+                      inputMode="tel"
+                      className="vy-input text-numeric"
+                      {...control}
                       {...register('phone')}
                     />
-                  </Field>
-                  <Field label="Correo (opcional)" htmlFor="email" error={errors.email?.message}>
+                  )}
+                </Field>
+                <Field label="Correo (opcional)" htmlFor="email" error={errors.email?.message}>
+                  {(control) => (
                     <input
-                      id="email"
                       type="email"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
+                      className="vy-input"
+                      {...control}
                       {...register('email', {
                         setValueAs: (value: string) => (value === '' ? undefined : value),
                       })}
                     />
-                  </Field>
-                  <Field
-                    label="Licencia (opcional)"
-                    htmlFor="license"
-                    error={errors.license?.message}
-                  >
+                  )}
+                </Field>
+                <Field
+                  label="Licencia (opcional)"
+                  htmlFor="license"
+                  error={errors.license?.message}
+                >
+                  {(control) => (
                     <input
-                      id="license"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
+                      className="vy-input"
+                      {...control}
                       {...register('license', {
                         setValueAs: (value: string) => (value === '' ? undefined : value),
                       })}
                     />
-                  </Field>
-                </div>
-              </fieldset>
+                  )}
+                </Field>
+              </div>
+            </fieldset>
+          </section>
 
-              <fieldset disabled={isSubmitting} className="space-y-4">
-                <legend className="mb-2 text-title font-display text-text">Vehículo</legend>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <Field
-                    label="Placa"
-                    htmlFor="vehicle.plate"
-                    error={errors.vehicle?.plate?.message}
-                  >
+          <section id={SECTION_IDS[1]} className="border-t border-border pt-6">
+            <fieldset disabled={submitting}>
+              <legend className="vy-eyebrow mb-4">{NEW_DRIVER_COPY.sections[1]}</legend>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Placa" htmlFor="vehicle.plate" error={errors.vehicle?.plate?.message}>
+                  {(control) => (
                     <input
-                      id="vehicle.plate"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric uppercase text-text outline-none"
+                      className="vy-input text-numeric uppercase"
+                      {...control}
                       {...register('vehicle.plate')}
                     />
-                  </Field>
-                  <Field
-                    label="Modelo"
-                    htmlFor="vehicle.model"
-                    error={errors.vehicle?.model?.message}
-                  >
+                  )}
+                </Field>
+                <Field
+                  label="Modelo"
+                  htmlFor="vehicle.model"
+                  error={errors.vehicle?.model?.message}
+                >
+                  {(control) => (
+                    <input className="vy-input" {...control} {...register('vehicle.model')} />
+                  )}
+                </Field>
+                <Field
+                  label="Año (opcional)"
+                  htmlFor="vehicle.year"
+                  error={errors.vehicle?.year?.message}
+                >
+                  {(control) => (
                     <input
-                      id="vehicle.model"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-                      {...register('vehicle.model')}
-                    />
-                  </Field>
-                  <Field
-                    label="Año (opcional)"
-                    htmlFor="vehicle.year"
-                    error={errors.vehicle?.year?.message}
-                  >
-                    <input
-                      id="vehicle.year"
                       type="number"
-                      className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric text-text outline-none"
+                      className="vy-input text-numeric"
+                      {...control}
                       {...register('vehicle.year', {
                         setValueAs: (value: string) => (value === '' ? undefined : Number(value)),
                       })}
                     />
-                  </Field>
-                  <div>
-                    <p className="mb-1 block text-body font-medium text-text">Tipo de servicio</p>
-                    <p className="text-body text-text-muted">Taxi</p>
-                  </div>
+                  )}
+                </Field>
+                <div>
+                  <p className="mb-1.5 text-body font-bold text-text">Tipo de servicio</p>
+                  <p className="text-body text-text-muted">Taxi</p>
                 </div>
-              </fieldset>
-            </div>
+              </div>
+            </fieldset>
 
-            <div className="flex items-start gap-3 rounded-md bg-espresso p-5 text-crema">
-              <span aria-hidden="true">🔐</span>
+            <div className="mt-6 flex items-start gap-3 rounded-md bg-espresso p-5 text-crema">
+              <span aria-hidden="true" className="mt-1 h-3 w-3 shrink-0 rounded-full bg-amber" />
               <p className="text-small leading-relaxed">
-                <span className="font-semibold text-crema">Credenciales automáticas.</span> Al
-                guardar, el conductor recibe por SMS su usuario (la cédula) y un PIN temporal de 4
-                dígitos.
+                <span className="font-bold text-crema">{NEW_DRIVER_COPY.credentialsTitle}</span>{' '}
+                {NEW_DRIVER_COPY.credentialsBody}
               </p>
             </div>
-          </div>
+          </section>
 
-          <section className="flex flex-col gap-3 rounded-md border border-border bg-surface p-6">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-title font-display text-text">Documentos</h2>
-              <span className="text-small text-text-muted">PDF o foto · máx. 5 MB</span>
+          <section id={SECTION_IDS[2]} className="border-t border-border pt-6">
+            <div className="mb-1 flex items-baseline justify-between">
+              <h2 className="vy-eyebrow">{NEW_DRIVER_COPY.sections[2]}</h2>
+              <span className="text-small text-text-muted">{NEW_DRIVER_COPY.documentsHint}</span>
             </div>
-            <p className="text-small text-text-muted">
-              La fecha de vencimiento es obligatoria para los 4 documentos.
-            </p>
+            <p className="mb-4 text-small text-text-muted">{NEW_DRIVER_COPY.documentsExpiry}</p>
 
-            {REQUIRED_DRIVER_DOCUMENT_TYPES.map((type) => (
-              <DocumentUploadRow
-                key={type}
-                type={type}
-                slot={slots[type]}
-                disabled={isSubmitting}
-                onFileSelected={(file) => void onFileSelected(type, file)}
-                onDateChange={(field, value) => setSlot(type, { [field]: value })}
-              />
-            ))}
+            <div className="flex flex-col gap-3">
+              {REQUIRED_DRIVER_DOCUMENT_TYPES.map((type) => (
+                <DocumentSlotCard
+                  key={type}
+                  documentType={type}
+                  label={DRIVER_DOCUMENT_TYPE_LABELS[type]}
+                  slot={slots[type]}
+                  disabled={submitting}
+                  expiryMode="required"
+                  onFileSelected={(file) => void onFileSelected(type, file)}
+                  onDateChange={(field, value) => setSlot(type, { [field]: value })}
+                />
+              ))}
+            </div>
 
-            {documentsError && (
-              <p role="alert" className="text-small text-danger-ink dark:text-danger-ink-dark">
-                {documentsError}
-              </p>
-            )}
-
-            <span className="mt-auto text-small text-text-muted">
+            <p className="mt-3 text-small text-text-muted">
               {
                 REQUIRED_DRIVER_DOCUMENT_TYPES.filter((type) => slots[type].status === 'uploaded')
                   .length
               }{' '}
               de {REQUIRED_DRIVER_DOCUMENT_TYPES.length} documentos cargados
-            </span>
+            </p>
           </section>
         </div>
 
-        {serverError && (
-          <p role="alert" className="rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink">
-            {serverError}
-          </p>
-        )}
-
-        <div className="fixed inset-x-0 bottom-0 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
-          <button
-            type="button"
-            onClick={() => navigate('/ops/drivers')}
-            className="focus-ring rounded-sm border border-border px-4 py-2 text-btn font-display text-text hover:bg-bg-shell"
-          >
+        <div className="fixed inset-x-0 bottom-0 z-30 flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
+          <Button variant="ghost" onClick={() => navigate('/ops/drivers')}>
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={!isValid || isSubmitting || !online || quotaExhausted}
-            className="focus-ring rounded-sm bg-amber px-4 py-2 text-btn font-display text-on-brand hover:bg-amber-deep disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!isValid || !online || quotaExhausted}
+            loading={submitting}
           >
-            {isSubmitting ? 'Guardando…' : 'Guardar y enviar PIN'}
-          </button>
+            {submitting ? 'Guardando…' : 'Guardar y enviar PIN'}
+          </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+interface ErrorSummaryItem {
+  fieldId: string;
+  label: string;
+  message: string;
+}
+
+interface ErrorSummaryProps {
+  items: ErrorSummaryItem[];
+  extra: Array<string | null>;
+}
+
+function ErrorSummary({ items, extra }: ErrorSummaryProps): JSX.Element | null {
+  const ref = useRef<HTMLDivElement>(null);
+  const extras = extra.filter((message): message is string => message !== null);
+  const total = items.length + extras.length;
+
+  useEffect(() => {
+    if (total > 0) ref.current?.focus();
+  }, [total]);
+
+  if (total === 0) return null;
+
+  return (
+    <div ref={ref} tabIndex={-1} role="alert" className="mb-6 focus:outline-none">
+      <Notice tone="danger" leading={<StateGlyph glyph="error" size={28} />}>
+        <p className="font-bold">{NEW_DRIVER_COPY.summaryTitle}</p>
+        <ul className="mt-1 list-disc pl-5 text-small">
+          {items.map((item) => (
+            <li key={item.fieldId}>
+              <a href={`#${item.fieldId}`} className="font-bold underline">
+                {item.label}
+              </a>
+              : {item.message}
+            </li>
+          ))}
+          {extras.map((message) => (
+            <li key={message}>{message}</li>
+          ))}
+        </ul>
+      </Notice>
     </div>
   );
 }
@@ -487,16 +548,17 @@ function FleetQuotaBanner({
   if (isInitialLoading) return null;
   if (status === 'error' && !quota) {
     return (
-      <div className="mb-4 flex items-center gap-3 rounded-xs border border-border bg-surface-sunken px-3 py-2">
-        <p className="text-small text-text-muted">No pudimos cargar el cupo de flota.</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="focus-ring rounded-sm text-small font-medium text-text hover:underline"
-        >
-          Reintentar
-        </button>
-      </div>
+      <Notice
+        tone="info"
+        className="mb-4"
+        action={
+          <Button variant="ghost" onClick={onRetry}>
+            Reintentar
+          </Button>
+        }
+      >
+        {NEW_DRIVER_COPY.quotaLoadError}
+      </Notice>
     );
   }
   if (!quota) return null;
@@ -507,119 +569,13 @@ function FleetQuotaBanner({
   const exhausted = quota.available === 0;
   return (
     <div
-      className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-small font-medium ${
+      className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-small font-bold ${
         exhausted
-          ? 'border-danger/40 bg-danger-tint text-danger-ink'
-          : 'border-amber/40 bg-amber/10 text-amber-ink dark:text-amber'
+          ? 'border-danger/40 bg-danger-tint text-danger-ink dark:bg-danger/15 dark:text-danger-ink-dark'
+          : 'border-amber/50 bg-amber/10 text-amber-ink dark:text-amber'
       }`}
     >
       {label}
-    </div>
-  );
-}
-
-interface DocumentUploadRowProps {
-  type: DriverDocumentType;
-  slot: DocumentSlot;
-  disabled: boolean;
-  onFileSelected: (file: File) => void;
-  onDateChange: (field: 'issuedAt' | 'expiresAt', value: string) => void;
-}
-
-function DocumentUploadRow({
-  type,
-  slot,
-  disabled,
-  onFileSelected,
-  onDateChange,
-}: DocumentUploadRowProps): JSX.Element {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const label = DRIVER_DOCUMENT_TYPE_LABELS[type];
-
-  return (
-    <div
-      className={`flex flex-col gap-2.5 rounded-item border p-3 ${
-        slot.status === 'uploaded'
-          ? 'border-success/40 bg-success/10'
-          : slot.status === 'error'
-            ? 'border-danger/40 bg-danger-tint'
-            : 'border-dashed border-border-input bg-bg'
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <span className="flex-1">
-          <p className="text-body font-medium text-text">{label}</p>
-          {slot.fileName && <p className="text-small text-text-muted">{slot.fileName}</p>}
-          {slot.status === 'uploading' && <p className="text-small text-text-muted">Subiendo…</p>}
-          {slot.status === 'error' && slot.errorMessage && (
-            <p className="text-small text-danger-ink dark:text-danger-ink-dark">
-              {slot.errorMessage}
-            </p>
-          )}
-        </span>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/pdf,image/jpeg,image/png"
-          className="sr-only"
-          disabled={disabled}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) onFileSelected(file);
-            event.target.value = '';
-          }}
-          aria-label={`Subir archivo de ${label}`}
-        />
-        <button
-          type="button"
-          disabled={disabled || slot.status === 'uploading'}
-          onClick={() => inputRef.current?.click()}
-          className="focus-ring h-tap shrink-0 rounded-sm border border-border-input bg-surface px-3 text-btn font-display text-text hover:bg-bg-shell disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {slot.status === 'uploaded'
-            ? 'Reemplazar'
-            : slot.status === 'uploading'
-              ? 'Subiendo…'
-              : 'Subir archivo'}
-        </button>
-      </div>
-
-      {(slot.status === 'uploaded' || slot.status === 'error') && (
-        <div className="flex items-center gap-3">
-          <label className="w-32 shrink-0 text-small text-text-muted" htmlFor={`${type}-expires`}>
-            Vence
-          </label>
-          <input
-            id={`${type}-expires`}
-            type="date"
-            value={slot.expiresAt}
-            disabled={disabled}
-            onChange={(event) => onDateChange('expiresAt', event.target.value)}
-            className="focus-ring flex-1 rounded-xs border border-border-input bg-surface px-3 py-1.5 text-numeric text-small text-text outline-none"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface FieldProps {
-  label: string;
-  htmlFor: string;
-  error?: string;
-  children: JSX.Element;
-}
-
-function Field({ label, htmlFor, error, children }: FieldProps): JSX.Element {
-  return (
-    <div>
-      <label htmlFor={htmlFor} className="mb-1 block text-body font-medium text-text">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p className="mt-1 text-small text-danger-ink dark:text-danger-ink-dark">{error}</p>
-      )}
     </div>
   );
 }

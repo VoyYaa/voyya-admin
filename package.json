@@ -14,8 +14,9 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "format": "prettier --write \"**/*.{ts,tsx,js,cjs,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,cjs,json,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,mts,js,cjs,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,mts,js,cjs,json,md,css}\"",
+    "test:tokens": "node --test src/__tests__/tokens.contract.test.mts",
     "typecheck:e2e": "tsc --noEmit -p e2e/tsconfig.json",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report"
@@ -26,7 +27,12 @@
     ]
   },
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/nunito": "^5.3.0",
+    "@fontsource-variable/nunito-sans": "^5.3.0",
     "@hookform/resolvers": "^3.9.0",
+    "@radix-ui/react-dialog": "^1.2.0",
+    "@radix-ui/react-dropdown-menu": "^2.1.25",
     "@voyyaa/shared": "0.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -36,6 +42,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.48.0",
     "@types/node": "^20.16.10",
     "@types/react": "^18.3.11",

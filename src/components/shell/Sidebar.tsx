@@ -121,18 +121,17 @@ function NavGroup({ label, children }: { label: string; children: ReactNode }): 
   );
 }
 
+function navLinkClass(isActive: boolean, nested = false): string {
+  const size = nested ? 'ml-6 gap-2 text-small' : 'gap-2.5 text-body';
+  const state = isActive
+    ? 'border-l-amber bg-frame-active-bg font-bold text-frame-text'
+    : 'border-l-transparent text-frame-text-muted hover:bg-frame-chip-bg hover:text-frame-text';
+  return `focus-ring flex min-h-tap items-center rounded-sm border-l-rail px-3 transition-colors motion-reduce:transition-none ${size} ${state}`;
+}
+
 function NavItemLink({ item }: { item: NavItem }): JSX.Element {
   return (
-    <NavLink
-      to={item.to}
-      className={({ isActive }) =>
-        `focus-ring flex items-center gap-2.5 rounded-sm border-l-[3px] px-3 py-2 text-body transition-colors motion-reduce:transition-none ${
-          isActive
-            ? 'border-l-amber bg-frame-active-bg font-semibold text-frame-text'
-            : 'border-l-transparent text-frame-text-muted hover:bg-frame-chip-bg hover:text-frame-text'
-        }`
-      }
-    >
+    <NavLink to={item.to} className={({ isActive }) => navLinkClass(isActive)}>
       {({ isActive }: { isActive: boolean }) => (
         <>
           <item.icon className={isActive ? 'text-amber' : 'text-frame-text-muted'} />
@@ -152,22 +151,13 @@ function PlatformCompaniesNavLink(): JSX.Element {
   const pendingCount = data?.pending_count ?? 0;
 
   return (
-    <NavLink
-      to="/platform/companies"
-      className={({ isActive }) =>
-        `focus-ring flex items-center gap-2.5 rounded-sm border-l-[3px] px-3 py-2 text-body transition-colors motion-reduce:transition-none ${
-          isActive
-            ? 'border-l-amber bg-frame-active-bg font-semibold text-frame-text'
-            : 'border-l-transparent text-frame-text-muted hover:bg-frame-chip-bg hover:text-frame-text'
-        }`
-      }
-    >
+    <NavLink to="/platform/companies" className={({ isActive }) => navLinkClass(isActive)}>
       {({ isActive }: { isActive: boolean }) => (
         <>
           <CompaniesIcon className={isActive ? 'text-amber' : 'text-frame-text-muted'} />
           Empresas
           {pendingCount > 0 && (
-            <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-[11px] font-bold text-on-brand">
+            <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1.5 text-eyebrow font-black text-on-brand">
               {pendingCount}
             </span>
           )}
@@ -207,13 +197,7 @@ export function Sidebar(): JSX.Element {
         {isAdmin && (
           <NavLink
             to="/admin/drivers/new"
-            className={({ isActive }) =>
-              `focus-ring ml-6 flex items-center gap-2 rounded-sm border-l-[3px] px-3 py-1.5 text-small transition-colors motion-reduce:transition-none ${
-                isActive
-                  ? 'border-l-amber bg-frame-active-bg font-medium text-frame-text'
-                  : 'border-l-transparent text-frame-text-muted hover:bg-frame-chip-bg hover:text-frame-text'
-              }`
-            }
+            className={({ isActive }) => navLinkClass(isActive, true)}
           >
             {({ isActive }: { isActive: boolean }) => (
               <>

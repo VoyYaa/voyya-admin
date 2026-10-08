@@ -34,7 +34,10 @@ export function useOpsPolling<T extends { server_time: string }>(
   fetcherRef.current = fetcher;
   useClockTick(1000);
 
+  const setRefreshing = useConnectionStore((state) => state.setRefreshing);
+
   const poll = useCallback(async () => {
+    setRefreshing(true);
     try {
       const result = await fetcherRef.current();
       setData(result);
@@ -49,8 +52,9 @@ export function useOpsPolling<T extends { server_time: string }>(
       setLastErrorWasNetwork(isNetworkError(apiError) || !navigator.onLine);
     } finally {
       setIsInitialLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [setRefreshing]);
 
   useEffect(() => {
     if (!isVisible) return;
@@ -74,7 +78,13 @@ export function useOpsPolling<T extends { server_time: string }>(
     publish({ state: freshness, errorStatus });
   }, [publish, freshness, errorStatus]);
 
-  useEffect(() => () => publish(null), [publish]);
+  useEffect(
+    () => () => {
+      publish(null);
+      setRefreshing(false);
+    },
+    [publish, setRefreshing],
+  );
 
   return {
     data,

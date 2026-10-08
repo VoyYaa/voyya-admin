@@ -28,7 +28,7 @@ function CompanyStatusChip({ profile }: { profile: CompanyProfile }): JSX.Elemen
 function CompanyStatusChipSkeleton(): JSX.Element {
   return (
     <span
-      className="h-6 w-32 animate-pulse rounded-full bg-frame-chip-bg motion-reduce:animate-none"
+      className="vy-skeleton h-6 w-32 rounded-full [--vy-skeleton-base:#352A1F]"
       aria-hidden="true"
     />
   );

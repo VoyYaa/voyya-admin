@@ -1,4 +1,7 @@
-import { useEffect, useRef, type JSX, type ReactNode } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import type { JSX, ReactNode } from 'react';
+import { useRestoreFocus } from '../../hooks/useRestoreFocus';
+import { Button } from './Button';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -9,14 +12,8 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   confirmDisabled?: boolean;
-}
-
-function getFocusableElements(container: HTMLElement): HTMLElement[] {
-  return Array.from(
-    container.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
-    ),
-  );
+  confirmTone?: 'primary' | 'danger';
+  confirming?: boolean;
 }
 
 export function ConfirmDialog({
@@ -28,87 +25,37 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   confirmDisabled = false,
-}: ConfirmDialogProps): JSX.Element | null {
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
-    titleRef.current?.focus();
-
-    function onKeyDown(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCancel();
-        return;
-      }
-      if (event.key === 'Tab' && containerRef.current) {
-        const focusables = getFocusableElements(containerRef.current);
-        if (focusables.length === 0) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        }
-      }
-    }
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      previouslyFocusedRef.current?.focus();
-    };
-  }, [open, onCancel]);
-
-  if (!open) return null;
+  confirmTone = 'primary',
+  confirming = false,
+}: ConfirmDialogProps): JSX.Element {
+  const restoreFocus = useRestoreFocus(open);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <button
-        type="button"
-        aria-label="Cerrar diálogo"
-        onClick={onCancel}
-        className="absolute inset-0 bg-espresso/30"
-      />
-      <div
-        ref={containerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        className="relative w-full max-w-md rounded-sm border-t-[3px] border-t-amber bg-surface p-6"
-      >
-        <h2
-          id="confirm-dialog-title"
-          ref={titleRef}
-          tabIndex={-1}
-          className="mb-3 text-title font-display text-text focus:outline-none"
+    <Dialog.Root open={open} onOpenChange={(next) => !next && onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="vy-overlay fixed inset-0 z-50 bg-espresso/60" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          onCloseAutoFocus={restoreFocus}
+          className="vy-dialog fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-sm border border-border-input border-t-rail border-t-amber bg-surface p-6 focus:outline-none"
         >
-          {title}
-        </h2>
-        <div className="mb-6 text-body text-text">{children}</div>
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="focus-ring rounded-sm px-4 py-2 text-btn font-display text-text hover:bg-bg-shell"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={confirmDisabled}
-            className="focus-ring rounded-sm bg-amber px-4 py-2 text-btn font-display text-on-brand hover:bg-amber-deep disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+          <Dialog.Title className="mb-3 font-display text-title text-text">{title}</Dialog.Title>
+          <div className="mb-6 text-body text-text">{children}</div>
+          <div className="flex justify-end gap-3">
+            <Dialog.Close asChild>
+              <Button variant="ghost">{cancelLabel}</Button>
+            </Dialog.Close>
+            <Button
+              variant={confirmTone}
+              onClick={onConfirm}
+              disabled={confirmDisabled}
+              loading={confirming}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

@@ -3,38 +3,44 @@
 @tailwind utilities;
 
 :root {
-  --color-bg: #fbf7ef;
-  --color-bg-shell: #f2ead8;
+  --color-bg: #fbf6ed;
+  --color-bg-shell: #f3ead9;
   --color-surface: #ffffff;
   --color-surface-sunken: #f6f1e6;
   --color-border: #e3daca;
   --color-border-input: #cdc2ac;
-  --color-text: #171512;
-  --color-text-muted: #57534a;
-  --color-text-subtle: #6b6558;
-  --color-on-brand: #171512;
-  --color-focus-ring: #171512;
-  --color-focus-halo: rgba(245, 184, 0, 0.35);
-  --color-status-neutral: rgba(23, 21, 18, 0.35);
-  --font-display: 'Bricolage Grotesque', Georgia, serif;
-  --font-body: 'Instrument Sans', 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --color-border-control: #8f7f68;
+  --color-text: #2a2018;
+  --color-text-muted: #5c4a3a;
+  --color-text-subtle: #6b5a47;
+  --color-on-brand: #2a2018;
+  --color-focus-ring: #2a2018;
+  --color-focus-halo: rgba(244, 162, 26, 0.45);
+  --color-status-neutral: rgba(42, 32, 24, 0.35);
+  --font-display:
+    'Nunito Variable', 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Nunito Sans Variable', 'Nunito Sans', system-ui, 'Segoe UI', sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: light;
 }
 
 .dark {
-  --color-bg: #17130e;
-  --color-bg-shell: #1f1913;
-  --color-surface: #241d15;
-  --color-surface-sunken: #2b2318;
-  --color-border: rgba(227, 218, 202, 0.16);
-  --color-border-input: rgba(227, 218, 202, 0.28);
-  --color-text: #fbf7ef;
-  --color-text-muted: #c9c2b2;
-  --color-text-subtle: rgba(251, 247, 239, 0.5);
-  --color-on-brand: #171512;
-  --color-focus-ring: #fbf7ef;
-  --color-focus-halo: rgba(245, 184, 0, 0.35);
-  --color-status-neutral: rgba(251, 247, 239, 0.35);
+  --color-bg: #1c140d;
+  --color-bg-shell: #261d14;
+  --color-surface: #2a2018;
+  --color-surface-sunken: #231a12;
+  --color-border: rgba(234, 223, 201, 0.16);
+  --color-border-input: rgba(234, 223, 201, 0.28);
+  --color-border-control: #8a7a66;
+  --color-text: #fbf6ed;
+  --color-text-muted: #cbbfad;
+  --color-text-subtle: #a39580;
+  --color-on-brand: #2a2018;
+  --color-focus-ring: #fbf6ed;
+  --color-focus-halo: rgba(244, 162, 26, 0.45);
+  --color-status-neutral: rgba(251, 246, 237, 0.35);
+  color-scheme: dark;
 }
 
 @layer base {
@@ -42,11 +48,189 @@
     @apply bg-bg text-text antialiased;
     font-family: var(--font-body);
   }
+}
 
+@layer components {
   .focus-ring:focus-visible {
     outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
     box-shadow: 0 0 0 6px var(--color-focus-halo);
+  }
+
+  .vy-input {
+    @apply focus-ring min-h-tap w-full rounded-xs border border-border-control bg-surface px-3 text-body text-text outline-none placeholder:text-text-subtle;
+  }
+
+  .vy-input:disabled {
+    @apply cursor-not-allowed opacity-60;
+  }
+
+  .vy-input[aria-invalid='true'] {
+    @apply border-2 border-danger;
+  }
+
+  .vy-link {
+    @apply focus-ring rounded-sm border-b-[3px] border-amber font-bold text-text hover:border-text;
+  }
+
+  .vy-eyebrow {
+    @apply inline-flex items-center gap-2 text-eyebrow uppercase text-amber-ink dark:text-amber;
+  }
+
+  .vy-eyebrow::before {
+    content: '';
+    @apply h-2 w-2 shrink-0 rounded-full bg-success;
+  }
+
+  .vy-mark {
+    position: relative;
+    width: var(--s, 64px);
+    height: var(--s, 64px);
+    flex-shrink: 0;
+  }
+
+  .vy-mark::before,
+  .vy-mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 2px solid theme('colors.amber.DEFAULT');
+    animation: vy-ring 2400ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  .vy-mark::after {
+    animation-delay: 1200ms;
+  }
+
+  .vy-mark > i {
+    position: absolute;
+    inset: 34%;
+    border-radius: 9999px;
+    background: theme('colors.amber.DEFAULT');
+    animation: vy-breathe 1200ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+
+  .vy-spinner {
+    display: inline-block;
+    flex-shrink: 0;
+    width: var(--s, 16px);
+    height: var(--s, 16px);
+    border-radius: 9999px;
+    border: calc(var(--s, 16px) / 8) solid color-mix(in srgb, currentColor 18%, transparent);
+    border-top-color: currentColor;
+    animation: vy-spin 900ms linear infinite;
+  }
+
+  .vy-rail {
+    position: relative;
+    height: 3px;
+    overflow: hidden;
+    background: color-mix(in srgb, theme('colors.amber.DEFAULT') 22%, transparent);
+  }
+
+  .vy-rail::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 30%;
+    background: theme('colors.amber.DEFAULT');
+    animation: vy-rail 1100ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+
+  .vy-skeleton {
+    background: linear-gradient(
+      100deg,
+      var(--vy-skeleton-base, var(--color-surface-sunken)) 30%,
+      color-mix(
+          in srgb,
+          theme('colors.amber.DEFAULT') 14%,
+          var(--vy-skeleton-base, var(--color-surface-sunken))
+        )
+        50%,
+      var(--vy-skeleton-base, var(--color-surface-sunken)) 70%
+    );
+    background-size: 250% 100%;
+    animation: vy-shimmer 1400ms linear infinite;
+  }
+
+  .vy-draw-underline {
+    background-image: linear-gradient(theme('colors.amber.DEFAULT'), theme('colors.amber.DEFAULT'));
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 100% 0.14em;
+    padding-bottom: 0.06em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    animation: vy-underline 900ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+  }
+
+  .vy-steprail {
+    position: relative;
+  }
+
+  .vy-steprail::before {
+    content: '';
+    position: absolute;
+    background: color-mix(in srgb, theme('colors.amber.DEFAULT') 55%, transparent);
+    animation: vy-draw-y 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .vy-steprail[data-orientation='vertical']::before {
+    left: 15px;
+    top: 16px;
+    bottom: 16px;
+    width: 2px;
+    transform-origin: top;
+  }
+
+  .vy-steprail[data-orientation='horizontal']::before {
+    left: 16px;
+    right: 16px;
+    top: 15px;
+    height: 2px;
+    transform-origin: left;
+    animation-name: vy-draw-x;
+  }
+
+  .vy-draw-line {
+    transform-origin: top;
+    animation: vy-draw-y 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .vy-node-current {
+    animation: vy-breathe 1200ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+
+  .vy-stroke {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    animation: vy-stroke 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .vy-stroke-late {
+    animation-duration: 320ms;
+    animation-delay: 300ms;
+  }
+
+  .vy-overlay {
+    animation: vy-fade-in 200ms ease-out both;
+  }
+
+  .vy-drawer {
+    animation: vy-slide-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .vy-dialog {
+    animation: vy-pop-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .vy-menu {
+    animation: vy-pop-in 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .vy-toast {
+    animation: vy-toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 }
 
@@ -55,5 +239,152 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-weight: 500;
+  }
+}
+
+@keyframes vy-ring {
+  0% {
+    transform: scale(0.35);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+
+@keyframes vy-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+
+@keyframes vy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vy-rail {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes vy-shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+
+@keyframes vy-underline {
+  from {
+    background-size: 0 0.14em;
+  }
+  to {
+    background-size: 100% 0.14em;
+  }
+}
+
+@keyframes vy-draw-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes vy-draw-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes vy-stroke {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes vy-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vy-slide-in {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes vy-pop-in {
+  from {
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes vy-toast-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .vy-mark::before {
+    transform: scale(0.8);
+    opacity: 0.35;
+  }
+
+  .vy-mark::after {
+    display: none;
+  }
+
+  .vy-rail::before {
+    width: 40%;
+    opacity: 0.6;
   }
 }

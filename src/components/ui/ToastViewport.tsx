@@ -1,5 +1,10 @@
 import type { JSX } from 'react';
-import { useToastStore } from '../../state/toast-store';
+import { useToastStore, type ToastMessage } from '../../state/toast-store';
+
+const TONE_CLASS: Record<ToastMessage['tone'], { rail: string; dot: string }> = {
+  success: { rail: 'border-l-success', dot: 'bg-success' },
+  danger: { rail: 'border-l-danger', dot: 'bg-danger' },
+};
 
 export function ToastViewport(): JSX.Element {
   const toasts = useToastStore((s) => s.toasts);
@@ -9,27 +14,24 @@ export function ToastViewport(): JSX.Element {
     <div
       role="region"
       aria-live="polite"
-      className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2"
+      className="pointer-events-none fixed bottom-4 right-4 z-[60] flex flex-col gap-2"
     >
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`pointer-events-auto flex items-center gap-3 rounded-md border-t border-r border-b border-l-[3px] border-t-border-input border-r-border-input border-b-border-input bg-surface px-4 py-3 text-body text-text ${
-            toast.tone === 'success' ? 'border-l-success' : 'border-l-danger'
-          }`}
+          className={`vy-toast pointer-events-auto flex items-center gap-3 rounded-md border border-l-rail border-border-input bg-surface py-1 pl-4 pr-1 text-body text-text ${TONE_CLASS[toast.tone].rail}`}
         >
           <span
             aria-hidden="true"
-            className={`h-2 w-2 shrink-0 rounded-full ${
-              toast.tone === 'success' ? 'bg-success' : 'bg-danger'
-            }`}
+            className={`h-2 w-2 shrink-0 rounded-full ${TONE_CLASS[toast.tone].dot}`}
           />
-          <span>{toast.message}</span>
+          <span className="py-2">{toast.message}</span>
           <button
             type="button"
+            data-compact-chrome
             onClick={() => dismissToast(toast.id)}
             aria-label="Cerrar aviso"
-            className="focus-ring rounded-sm text-small text-text-muted hover:text-text"
+            className="focus-ring flex h-tap-compact w-tap-compact shrink-0 items-center justify-center rounded-sm text-small text-text-muted hover:text-text"
           >
             ✕
           </button>

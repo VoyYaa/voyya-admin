@@ -9,11 +9,21 @@ import {
   type TripStatus,
 } from '@voyyaa/shared';
 import { getOpsQueue, getOpsTripDetail } from '../api/ops-queue.api';
+import { Button } from '../components/ui/Button';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
 import { FreshnessBar } from '../components/ui/FreshnessBar';
+import { PageToolbar } from '../components/ui/PageToolbar';
+import { StatStrip, type StatItem } from '../components/ui/StatStrip';
 import { StatusDot } from '../components/ui/StatusDot';
-import { EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStates';
+import { DetailSkeleton, EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStates';
 import { Timeline } from '../components/ui/Timeline';
+import {
+  ROW_CLASS,
+  TABLE_HEAD_CLASS,
+  TH_CLASS,
+  TH_RIGHT_CLASS,
+} from '../components/ui/table-styles';
+import { STAT_COPY } from '../copy/common';
 import { useAsync } from '../hooks/useAsync';
 import { useOpsPolling } from '../hooks/useOpsPolling';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
@@ -32,12 +42,12 @@ function QueueColGroup(): JSX.Element {
   return (
     <colgroup>
       <col style={{ width: '9%' }} />
+      <col style={{ width: '14%' }} />
+      <col style={{ width: '26%' }} />
+      <col style={{ width: '16%' }} />
       <col style={{ width: '15%' }} />
-      <col style={{ width: '32%' }} />
-      <col style={{ width: '17%' }} />
-      <col style={{ width: '15%' }} />
-      <col style={{ width: '8%' }} />
-      <col style={{ width: '4%' }} />
+      <col style={{ width: '9%' }} />
+      <col style={{ width: '11%' }} />
     </colgroup>
   );
 }
@@ -55,6 +65,39 @@ function matchesQueueFilter(
   filter: Exclude<OpsQueueStatusFilter, 'all'>,
 ): boolean {
   return (OPS_QUEUE_FILTER_STATUSES[filter] as readonly TripStatus[]).includes(status);
+}
+
+function countByStatuses(rows: readonly OpsQueueRow[], statuses: readonly TripStatus[]): number {
+  return rows.filter((row) => statuses.includes(row.status)).length;
+}
+
+function buildStatItems(rows: readonly OpsQueueRow[]): StatItem[] {
+  return [
+    {
+      key: 'pending',
+      label: STAT_COPY.searching,
+      value: countByStatuses(rows, ['pending_assignment']),
+      tone: 'brand',
+    },
+    {
+      key: 'en-route',
+      label: STAT_COPY.enRoute,
+      value: countByStatuses(rows, ['assigned', 'driver_en_route']),
+      tone: 'brand',
+    },
+    {
+      key: 'in-progress',
+      label: STAT_COPY.inProgress,
+      value: countByStatuses(rows, ['in_progress']),
+      tone: 'strong',
+    },
+    {
+      key: 'completed',
+      label: STAT_COPY.completed,
+      value: countByStatuses(rows, ['completed']),
+      tone: 'success',
+    },
+  ];
 }
 
 export function OpsQueuePage(): JSX.Element {
@@ -112,48 +155,20 @@ export function OpsQueuePage(): JSX.Element {
   const flashing = useRowFlash(flashSource);
   const announcement = useQueueAnnouncement(flashSource);
 
+  const statItems = useMemo<StatItem[]>(() => buildStatItems(rows), [rows]);
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-6 py-3">
-        <div>
-          <p className="text-eyebrow uppercase text-amber-ink dark:text-amber">Operación</p>
-          <h1 className="text-display font-display text-text">Cola en vivo</h1>
-        </div>
-        <div className="flex flex-1 flex-wrap items-center gap-5">
-          <div role="tablist" aria-label="Filtrar por estado" className="flex items-center gap-5">
-            {FILTER_OPTIONS.map((option) => {
-              const isActive = statusFilter === option;
-              const count = filterCounts[option];
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-label={`${QUEUE_FILTER_LABELS[option]}, ${count} solicitud${count === 1 ? '' : 'es'}`}
-                  onClick={() => setStatusFilter(option)}
-                  className={`focus-ring -mb-px border-b-[3px] px-0.5 pb-1.5 pt-1 text-body font-medium transition-colors motion-reduce:transition-none ${
-                    isActive
-                      ? 'border-b-amber text-text'
-                      : 'border-b-transparent text-text-muted hover:border-b-amber/40 hover:text-text'
-                  }`}
-                >
-                  <span aria-hidden="true">
-                    {QUEUE_FILTER_LABELS[option]} <span className="text-numeric">· {count}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por pasajero o conductor"
-            aria-label="Buscar por pasajero o conductor"
-            className="focus-ring min-w-[220px] flex-1 rounded-xs border border-border bg-surface px-3 py-1.5 text-body text-text outline-none"
-          />
-        </div>
+      <PageToolbar eyebrow="Operación" title="Cola en vivo">
+        <div className="flex-1" />
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar por pasajero o conductor"
+          aria-label="Buscar por pasajero o conductor"
+          className="vy-input min-w-[220px] max-w-sm flex-1"
+        />
         <span className="text-numeric text-small text-text-muted">
           {filteredRows.length} solicitud{filteredRows.length === 1 ? '' : 'es'}
         </span>
@@ -162,6 +177,38 @@ export function OpsQueuePage(): JSX.Element {
           lastUpdatedAtMs={lastSuccessAt}
           errorStatus={error?.status}
         />
+      </PageToolbar>
+
+      <StatStrip items={statItems} loading={isInitialLoading} />
+
+      <div
+        role="tablist"
+        aria-label="Filtrar por estado"
+        className="flex shrink-0 items-end gap-6 border-b border-border bg-surface px-6"
+      >
+        {FILTER_OPTIONS.map((option) => {
+          const isActive = statusFilter === option;
+          const count = filterCounts[option];
+          return (
+            <button
+              key={option}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-label={`${QUEUE_FILTER_LABELS[option]}, ${count} solicitud${count === 1 ? '' : 'es'}`}
+              onClick={() => setStatusFilter(option)}
+              className={`focus-ring -mb-px min-h-tap border-b-rail px-0.5 text-body font-bold transition-colors motion-reduce:transition-none ${
+                isActive
+                  ? 'border-b-amber text-text'
+                  : 'border-b-transparent text-text-muted hover:border-b-amber/40 hover:text-text'
+              }`}
+            >
+              <span aria-hidden="true">
+                {QUEUE_FILTER_LABELS[option]} <span className="text-numeric">· {count}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div
@@ -175,7 +222,11 @@ export function OpsQueuePage(): JSX.Element {
             </tbody>
           </table>
         ) : error && !data ? (
-          <ErrorPanel title="No pudimos cargar la cola." onRetry={refetch} />
+          <ErrorPanel
+            title="No pudimos cargar la cola."
+            onRetry={refetch}
+            variant={freshness === 'offline' ? 'offline' : 'error'}
+          />
         ) : filteredRows.length === 0 ? (
           <EmptyPanel
             title="No hay solicitudes activas."
@@ -184,27 +235,27 @@ export function OpsQueuePage(): JSX.Element {
         ) : (
           <table className="w-full table-fixed border-collapse">
             <QueueColGroup />
-            <thead className="sticky top-0 z-10 bg-surface-sunken">
+            <thead className={TABLE_HEAD_CLASS}>
               <tr>
-                <th scope="col" className="px-4 py-2 text-right text-table-header text-text-muted">
+                <th scope="col" className={TH_RIGHT_CLASS}>
                   Hora
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Pasajero
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Origen → Destino
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Estado
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Conductor
                 </th>
-                <th scope="col" className="px-4 py-2 text-right text-table-header text-text-muted">
+                <th scope="col" className={TH_RIGHT_CLASS}>
                   Tiempo en estado
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   <span className="sr-only">Acciones</span>
                 </th>
               </tr>
@@ -238,6 +289,7 @@ const FLASH_BG_CLASS: Record<StatusTone, string> = {
   brand: 'bg-amber/15',
   danger: 'bg-danger/15',
   neutral: 'bg-status-neutral',
+  strong: 'bg-espresso/10 dark:bg-crema/10',
 };
 
 interface QueueRowProps {
@@ -253,11 +305,7 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
   const routeLabel = `${row.pickup_address} → ${row.dropoff_address}`;
 
   return (
-    <tr
-      className={`h-row-md border-b border-border transition-colors duration-300 motion-reduce:transition-none ${
-        isFlashing ? FLASH_BG_CLASS[tone] : 'hover:bg-bg-shell'
-      }`}
-    >
+    <tr className={`${ROW_CLASS} ${isFlashing ? FLASH_BG_CLASS[tone] : 'hover:bg-bg-shell'}`}>
       <td className="relative whitespace-nowrap px-4 py-2 text-right text-numeric text-body text-text">
         <RowRail tone={tone} active={isFlashing} />
         {formatClockTime(row.requested_at)}
@@ -269,7 +317,11 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
         <span>{row.dropoff_address}</span>
       </td>
       <td className="px-4 py-2">
-        <StatusDot tone={tone} label={TRIP_STATUS_LABELS[row.status]} />
+        <StatusDot
+          tone={tone}
+          label={TRIP_STATUS_LABELS[row.status]}
+          pulse={row.status === 'pending_assignment'}
+        />
       </td>
       <td className="px-4 py-2 text-body text-text">
         {row.driver ? `${row.driver.name} · ${row.driver.plate}` : '—'}
@@ -277,15 +329,14 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
       <td className="whitespace-nowrap px-4 py-2 text-right text-numeric text-body text-text">
         {formatDurationMmSs(elapsed)}
       </td>
-      <td className="px-4 py-2 text-right">
-        <button
-          type="button"
+      <td className="px-2 py-2 text-right">
+        <Button
+          variant="ghost"
           onClick={onView}
           aria-label={`Ver detalle de la solicitud de ${row.passenger_name}`}
-          className="focus-ring rounded-sm px-2 py-1 text-small font-medium text-text hover:bg-bg-shell"
         >
           Ver
-        </button>
+        </Button>
       </td>
     </tr>
   );
@@ -334,7 +385,7 @@ function TripDetailDrawer({ tripId, onClose }: TripDetailDrawerProps): JSX.Eleme
 
   return (
     <DetailDrawer open={tripId !== null} title="Detalle de la solicitud" onClose={onClose}>
-      {status === 'loading' && <p className="text-body text-text-muted">Cargando…</p>}
+      {status === 'loading' && <DetailSkeleton />}
       {status === 'error' && <ErrorPanel title="No pudimos cargar el detalle." onRetry={refetch} />}
       {status === 'success' && data && (
         <div className="space-y-4">

@@ -136,3 +136,26 @@ export const PLATFORM_EMPTY_COPY: Record<'pending' | 'other', { title: string }>
   pending: { title: 'No hay solicitudes pendientes.' },
   other: { title: 'No hay empresas con este estado.' },
 };
+
+export const AFFILIATION_SUCCESS_COPY = {
+  nextStepsTitle: 'Qué sigue',
+  nextSteps: [
+    'Revisamos los datos y los documentos de tu empresa.',
+    'Te escribimos al correo de contacto con la respuesta.',
+    'Si aprobamos tu solicitud, podrás registrar a tus conductores.',
+  ],
+} as const;
+
+export const AFFILIATION_FIELDS_COPY = {
+  companySection: 'Datos de la empresa',
+  contactSection: 'Representante de contacto',
+  documentsSection: 'Documentos legales',
+  consentSection: 'Tratamiento de datos',
+  loadingMunicipalities: 'Cargando municipios…',
+  municipalitiesError: 'No pudimos cargar los municipios.',
+  chooseOption: 'Elige una opción',
+  chooseMunicipality: 'Elige tu municipio',
+  submit: 'Enviar solicitud',
+  submitting: 'Enviando…',
+  offline: 'Sin conexión · no se puede enviar la solicitud ahora.',
+} as const;

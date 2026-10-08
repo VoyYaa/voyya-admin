@@ -52,30 +52,28 @@ cp .env.example .env.local     # ajusta VITE_API_URL
 pnpm dev                       # http://localhost:5173
 ```
 
-## Tipografía — Nunito vía Google Fonts (medida temporal)
+## Identidad visual y tokens
 
-La identidad tipográfica de la consola es **Nunito** (`font-display`) + **Nunito Sans**
-(`font-body`) — la misma familia que ya usa `voyya-page`, ver
-`docs/VoyYa/ux/consola-web-sistema-visual.md` §4.1.
+La consola usa la misma identidad que las apps y el sitio (ADR-026): ámbar `#F4A21A`, espresso
+`#2A2018`, crema `#FBF6ED`, verde `#12A46A`. Los valores viven en `tailwind.config.js` y
+`src/index.css` (claro y oscuro); el selector de tema está en el menú de usuario (Según el sistema ·
+Claro · Oscuro) y se guarda en `localStorage`.
 
-La especificación de diseño pide autoalojarlas con `@fontsource-variable/nunito` y
-`@fontsource-variable/nunito-sans` (npm, sin depender de un CDN externo — coherente con que
-esta consola ya trata "sin conexión" como estado de primera clase). **Esa instalación falla hoy
-en este entorno** (`pnpm add` contra `registry.npmjs.org` responde
-`ERR_SSL_TLSV1_ALERT_ACCESS_DENIED`, un bloqueo de red de la máquina/entorno, no del paquete).
+Tipografía autoalojada (sin CDN): **Nunito** (`font-display`), **Nunito Sans** (`font-body`) y
+**JetBrains Mono** (`.text-numeric`), con `@fontsource-variable/*` importadas una sola vez en
+`src/main.tsx`. La pila de reserva (`ui-rounded`, `Segoe UI`, `system-ui`) evita texto invisible
+mientras cargan.
 
-Mientras ese acceso no esté disponible, `index.html` carga Nunito/Nunito Sans por `<link>` a
-Google Fonts (mismo patrón que `voyya-page/index.html`, pesos 700/800/900 para `font-display` y
-400/600/800 para `font-body`). Es una medida **temporal**, documentada a propósito para que no se
-lea como la decisión final:
+Componentes de marca: `Button`, `Field`, `Notice`, `StepRail`, `StatStrip`, `ProgressRail`,
+`Spinner`, `BrandLoader` y `StateGlyph`; su CSS (`vy-*`) está en `src/index.css`. Los overlays
+(`ConfirmDialog`, `DetailDrawer`, `UserMenu`) usan Radix.
 
-- [ ] Cuando el registro de npm sea accesible desde este entorno, instalar
-      `@fontsource-variable/nunito` y `@fontsource-variable/nunito-sans`, importarlas una sola vez en
-      `src/main.tsx` y retirar el `<link>` de Google Fonts de `index.html` (además de las etiquetas
-      `preconnect`). Ajustar `--font-display`/`--font-body` en `src/index.css` al nombre de familia
-      variable que exponga la versión instalada (`'Nunito Variable'`/`'Nunito Sans Variable'`).
-- La pila de reserva (`ui-rounded`, `Segoe UI`, `system-ui`) ya cubre el caso de que Google Fonts
-  no cargue (sin conexión, red lenta del municipio) — no hay texto invisible en ningún momento.
+## Pruebas
+
+```bash
+pnpm test:tokens   # contrato de tokens: hex de la tabla y ratios de contraste AA (node:test)
+BASE_URL=http://localhost:5173 pnpm test:e2e   # Playwright, incluye axe, tamaños táctiles y reduce-motion
+```
 
 ## Variables de entorno
 

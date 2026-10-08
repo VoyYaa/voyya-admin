@@ -132,6 +132,8 @@ test.describe('suspend driver action', () => {
         .getByRole('dialog', { name: 'Detalle del conductor' })
         .getByText('Suspendido', { exact: true }),
     ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Detalle del conductor' })).toBeHidden();
     await expect(
       page.getByRole('row').getByText('Suspendido', { exact: true }).first(),
     ).toBeVisible();

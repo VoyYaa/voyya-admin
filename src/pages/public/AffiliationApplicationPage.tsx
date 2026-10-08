@@ -15,14 +15,23 @@ import {
   uploadAffiliationDocument,
 } from '../../api/affiliation.api';
 import { domainErrorCode, domainErrorDetails, isNetworkError } from '../../api/errors';
+import { StateGlyph } from '../../components/brand/StateGlyph';
 import { DocumentSlotCard } from '../../components/documents/DocumentSlotCard';
 import { PublicPageShell } from '../../components/public/PublicPageShell';
+import { Button } from '../../components/ui/Button';
+import { Field } from '../../components/ui/Field';
+import { Notice } from '../../components/ui/Notice';
+import { StepRail } from '../../components/ui/StepRail';
+import { SkeletonBlock } from '../../components/ui/TableStates';
 import {
   AFFILIATION_CONFLICT_FIELD_MAP,
   AFFILIATION_ERROR_MESSAGES,
+  AFFILIATION_FIELDS_COPY,
   AFFILIATION_FORM_COPY,
+  AFFILIATION_SUCCESS_COPY,
   PRIVACY_CONSENT_COPY,
 } from '../../copy/affiliation';
+import { COMMON_COPY, STEP_COPY } from '../../copy/common';
 import { useAsync } from '../../hooks/useAsync';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
 import { spanishZodResolver } from '../../lib/form-resolver';
@@ -37,6 +46,11 @@ const CompanyDetailsDTO = CreateAffiliationApplicationDTO.omit({ documents: true
 type CompanyDetailsForm = z.infer<typeof CompanyDetailsDTO>;
 
 type DocumentSlots = Record<CompanyDocumentType, DocumentSlot>;
+
+const STEP_DATA = 0;
+const STEP_DOCUMENTS = 1;
+const STEP_REVIEW = 2;
+const STEP_ALL_DONE = 3;
 
 function initialSlots(): DocumentSlots {
   return REQUIRED_COMPANY_DOCUMENT_TYPES.reduce((acc, type) => {
@@ -59,6 +73,11 @@ function buildDocumentsPayload(slots: DocumentSlots): AffiliationDocumentInput[]
       expires_at: slot.expiresAt.trim().length > 0 ? slot.expiresAt.trim() : undefined,
     };
   });
+}
+
+function resolveCurrentStep(detailsValid: boolean, documentsComplete: boolean): number {
+  if (!detailsValid) return STEP_DATA;
+  return documentsComplete ? STEP_REVIEW : STEP_DOCUMENTS;
 }
 
 const PRIVACY_POLICY_URL = import.meta.env.VITE_PRIVACY_POLICY_URL;
@@ -188,79 +207,112 @@ export function AffiliationApplicationPage(): JSX.Element {
     }
   });
 
+  const uploadedCount = REQUIRED_COMPANY_DOCUMENT_TYPES.filter(
+    (type) => slots[type].status === 'uploaded',
+  ).length;
+
   if (successEmail) {
     return (
-      <PublicPageShell>
-        <div className="mx-auto max-w-lg py-10 text-center">
-          <p className="mb-2 text-eyebrow uppercase text-amber-ink dark:text-amber">
-            {AFFILIATION_FORM_COPY.eyebrow}
-          </p>
-          <h1 role="status" className="mb-3 text-title font-display text-text">
-            {AFFILIATION_FORM_COPY.successTitle}
-          </h1>
-          <p className="text-body text-text-muted">
-            {AFFILIATION_FORM_COPY.successBody(successEmail)}
-          </p>
+      <PublicPageShell
+        hero={{
+          eyebrow: AFFILIATION_FORM_COPY.eyebrow,
+          title: AFFILIATION_FORM_COPY.successTitle,
+          role: 'status',
+        }}
+      >
+        <div className="mx-auto flex max-w-4xl flex-col gap-8">
+          <StepRail steps={STEP_COPY.applicationSteps} current={STEP_ALL_DONE} />
+          <div className="flex items-start gap-5">
+            <StateGlyph glyph="success" size={72} animate />
+            <p className="max-w-[56ch] pt-2 text-lede text-text-muted">
+              {AFFILIATION_FORM_COPY.successBody(successEmail)}
+            </p>
+          </div>
+          <section aria-label={AFFILIATION_SUCCESS_COPY.nextStepsTitle}>
+            <p className="vy-eyebrow mb-3">{AFFILIATION_SUCCESS_COPY.nextStepsTitle}</p>
+            <ol className="flex flex-col gap-3 border-t border-border pt-4">
+              {AFFILIATION_SUCCESS_COPY.nextSteps.map((step, index) => (
+                <li key={step} className="flex items-center gap-3 text-body text-text">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-amber bg-espresso text-small font-black text-crema"
+                  >
+                    {index + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </section>
         </div>
       </PublicPageShell>
     );
   }
 
   return (
-    <PublicPageShell>
+    <PublicPageShell
+      hero={{
+        eyebrow: AFFILIATION_FORM_COPY.eyebrow,
+        title: AFFILIATION_FORM_COPY.title,
+        lede: AFFILIATION_FORM_COPY.lede,
+      }}
+    >
       <div className="mx-auto max-w-4xl">
-        <p className="mb-1 text-eyebrow uppercase text-amber-ink dark:text-amber">
-          {AFFILIATION_FORM_COPY.eyebrow}
-        </p>
-        <h1 className="mb-2 text-display font-display text-text">{AFFILIATION_FORM_COPY.title}</h1>
-        <p className="mb-6 max-w-[70ch] text-body text-text-muted">{AFFILIATION_FORM_COPY.lede}</p>
+        <div className="mb-8">
+          <StepRail
+            steps={STEP_COPY.applicationSteps}
+            current={resolveCurrentStep(
+              isValid,
+              uploadedCount === REQUIRED_COMPANY_DOCUMENT_TYPES.length,
+            )}
+          />
+        </div>
 
         {!online && (
-          <p
+          <Notice
+            tone="info"
             role="alert"
-            className="mb-4 rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
+            className="mb-4"
+            leading={<StateGlyph glyph="offline" size={28} />}
           >
-            Sin conexión · no se puede enviar la solicitud ahora.
-          </p>
+            {AFFILIATION_FIELDS_COPY.offline}
+          </Notice>
         )}
 
-        <form onSubmit={onSubmit} noValidate className="space-y-6 pb-8">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <fieldset
-              disabled={submitting}
-              className="space-y-4 rounded-md border border-border bg-surface p-6"
-            >
-              <legend className="mb-2 text-title font-display text-text">
-                Datos de la empresa
-              </legend>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field label="Razón social" htmlFor="legal_name" error={errors.legal_name?.message}>
-                  <input
-                    id="legal_name"
-                    className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-                    {...register('legal_name')}
-                  />
-                </Field>
-                <Field label="NIT" htmlFor="tax_id" error={errors.tax_id?.message}>
-                  <input
-                    id="tax_id"
-                    className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric text-text outline-none"
-                    {...register('tax_id')}
-                  />
-                </Field>
-                <Field
-                  label="Forma jurídica"
-                  htmlFor="legal_form"
-                  error={errors.legal_form?.message}
-                >
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-10 pb-8">
+          <fieldset disabled={submitting} className="border-t border-border pt-6">
+            <legend className="vy-eyebrow mb-4">{AFFILIATION_FIELDS_COPY.companySection}</legend>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field
+                label="Razón social"
+                htmlFor="legal_name"
+                error={errors.legal_name?.message}
+                announceError
+              >
+                {(control) => (
+                  <input className="vy-input" {...control} {...register('legal_name')} />
+                )}
+              </Field>
+              <Field label="NIT" htmlFor="tax_id" error={errors.tax_id?.message} announceError>
+                {(control) => (
+                  <input className="vy-input text-numeric" {...control} {...register('tax_id')} />
+                )}
+              </Field>
+              <Field
+                label="Forma jurídica"
+                htmlFor="legal_form"
+                error={errors.legal_form?.message}
+                announceError
+              >
+                {(control) => (
                   <select
-                    id="legal_form"
                     defaultValue=""
-                    className="focus-ring h-tap w-full rounded-xs border border-border-input bg-surface px-3 text-body text-text outline-none"
+                    className="vy-input"
+                    {...control}
                     {...register('legal_form')}
                   >
                     <option value="" disabled>
-                      Elige una opción
+                      {AFFILIATION_FIELDS_COPY.chooseOption}
                     </option>
                     {CompanyLegalForm.options.map((option) => (
                       <option key={option} value={option}>
@@ -268,92 +320,101 @@ export function AffiliationApplicationPage(): JSX.Element {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <MunicipalityField
-                  error={errors.municipality_id?.message}
-                  status={municipalitiesStatus}
-                  isInitialLoading={municipalitiesInitialLoading}
-                  rows={municipalities?.rows ?? []}
-                  onRetry={refetchMunicipalities}
-                  register={register}
-                />
-                <Field
-                  label="Flota declarada (número de vehículos)"
-                  htmlFor="vehicle_count"
-                  error={errors.vehicle_count?.message}
-                >
+                )}
+              </Field>
+              <MunicipalityField
+                error={errors.municipality_id?.message}
+                status={municipalitiesStatus}
+                isInitialLoading={municipalitiesInitialLoading}
+                rows={municipalities?.rows ?? []}
+                onRetry={refetchMunicipalities}
+                register={register}
+              />
+              <Field
+                label="Flota declarada (número de vehículos)"
+                htmlFor="vehicle_count"
+                error={errors.vehicle_count?.message}
+                announceError
+              >
+                {(control) => (
                   <input
-                    id="vehicle_count"
                     type="number"
                     min={1}
-                    className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric text-text outline-none"
+                    className="vy-input text-numeric"
+                    {...control}
                     {...register('vehicle_count', { valueAsNumber: true })}
                   />
-                </Field>
-              </div>
-            </fieldset>
+                )}
+              </Field>
+            </div>
+          </fieldset>
 
-            <fieldset
-              disabled={submitting}
-              className="space-y-4 rounded-md border border-border bg-surface p-6"
-            >
-              <legend className="mb-2 text-title font-display text-text">
-                Representante de contacto
-              </legend>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field
-                  label="Nombres"
-                  htmlFor="contact_first_name"
-                  error={errors.contact_first_name?.message}
-                >
+          <fieldset disabled={submitting} className="border-t border-border pt-6">
+            <legend className="vy-eyebrow mb-4">{AFFILIATION_FIELDS_COPY.contactSection}</legend>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field
+                label="Nombres"
+                htmlFor="contact_first_name"
+                error={errors.contact_first_name?.message}
+                announceError
+              >
+                {(control) => (
+                  <input className="vy-input" {...control} {...register('contact_first_name')} />
+                )}
+              </Field>
+              <Field
+                label="Apellidos"
+                htmlFor="contact_last_name"
+                error={errors.contact_last_name?.message}
+                announceError
+              >
+                {(control) => (
+                  <input className="vy-input" {...control} {...register('contact_last_name')} />
+                )}
+              </Field>
+              <Field
+                label="Correo"
+                htmlFor="contact_email"
+                error={errors.contact_email?.message}
+                announceError
+              >
+                {(control) => (
                   <input
-                    id="contact_first_name"
-                    className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-                    {...register('contact_first_name')}
-                  />
-                </Field>
-                <Field
-                  label="Apellidos"
-                  htmlFor="contact_last_name"
-                  error={errors.contact_last_name?.message}
-                >
-                  <input
-                    id="contact_last_name"
-                    className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
-                    {...register('contact_last_name')}
-                  />
-                </Field>
-                <Field label="Correo" htmlFor="contact_email" error={errors.contact_email?.message}>
-                  <input
-                    id="contact_email"
                     type="email"
-                    className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-body text-text outline-none"
+                    className="vy-input"
+                    {...control}
                     {...register('contact_email')}
                   />
-                </Field>
-                <Field
-                  label="Teléfono"
-                  htmlFor="contact_phone"
-                  error={errors.contact_phone?.message}
-                >
+                )}
+              </Field>
+              <Field
+                label="Teléfono"
+                htmlFor="contact_phone"
+                error={errors.contact_phone?.message}
+                announceError
+              >
+                {(control) => (
                   <input
-                    id="contact_phone"
-                    className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric text-text outline-none"
+                    className="vy-input text-numeric"
+                    {...control}
                     {...register('contact_phone')}
                   />
-                </Field>
-              </div>
-            </fieldset>
-          </div>
+                )}
+              </Field>
+            </div>
+          </fieldset>
 
-          <section className="rounded-md border border-border bg-surface p-6">
-            <div className="mb-1 flex items-baseline justify-between">
-              <h2 className="text-title font-display text-text">Documentos legales</h2>
+          <section
+            aria-label={AFFILIATION_FIELDS_COPY.documentsSection}
+            className="border-t border-border pt-6"
+          >
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="vy-eyebrow">{AFFILIATION_FIELDS_COPY.documentsSection}</h2>
               <span className="text-small text-text-muted">
                 {AFFILIATION_FORM_COPY.documentsHint}
               </span>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {REQUIRED_COMPANY_DOCUMENT_TYPES.map((type) => (
                 <DocumentSlotCard
                   key={type}
@@ -367,21 +428,23 @@ export function AffiliationApplicationPage(): JSX.Element {
               ))}
             </div>
             {documentsError && (
-              <p role="alert" className="mt-3 text-small text-danger-ink dark:text-danger-ink-dark">
+              <p
+                role="alert"
+                className="mt-3 text-small font-semibold text-danger-ink dark:text-danger-ink-dark"
+              >
                 {documentsError}
               </p>
             )}
             <p className="mt-3 text-small text-text-muted">
-              {
-                REQUIRED_COMPANY_DOCUMENT_TYPES.filter((type) => slots[type].status === 'uploaded')
-                  .length
-              }{' '}
-              de {REQUIRED_COMPANY_DOCUMENT_TYPES.length} documentos cargados
+              {uploadedCount} de {REQUIRED_COMPANY_DOCUMENT_TYPES.length} documentos cargados
             </p>
           </section>
 
-          <section className="rounded-md border border-border bg-surface p-6">
-            <label className="flex cursor-pointer items-start gap-3">
+          <section
+            aria-label={AFFILIATION_FIELDS_COPY.consentSection}
+            className="border-t border-border pt-6"
+          >
+            <label className="flex min-h-tap cursor-pointer items-start gap-3">
               <input
                 type="checkbox"
                 checked={consentAccepted}
@@ -390,17 +453,12 @@ export function AffiliationApplicationPage(): JSX.Element {
                   if (event.target.checked) setConsentError(null);
                 }}
                 aria-describedby={consentError ? 'consent-error' : undefined}
-                className="focus-ring mt-0.5 h-5 w-5 shrink-0 rounded-xs border border-border-input"
+                className="focus-ring mt-0.5 h-5 w-5 shrink-0 accent-amber-deep"
               />
               <span className="text-small text-text-muted">
                 {PRIVACY_CONSENT_COPY.label}{' '}
                 {PRIVACY_POLICY_URL ? (
-                  <a
-                    href={PRIVACY_POLICY_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="focus-ring rounded-sm font-medium text-text underline"
-                  >
+                  <a href={PRIVACY_POLICY_URL} target="_blank" rel="noreferrer" className="vy-link">
                     {PRIVACY_CONSENT_COPY.linkText}
                   </a>
                 ) : null}
@@ -410,7 +468,7 @@ export function AffiliationApplicationPage(): JSX.Element {
               <p
                 id="consent-error"
                 role="alert"
-                className="mt-2 text-small text-danger-ink dark:text-danger-ink-dark"
+                className="mt-2 text-small font-semibold text-danger-ink dark:text-danger-ink-dark"
               >
                 {consentError}
               </p>
@@ -418,49 +476,24 @@ export function AffiliationApplicationPage(): JSX.Element {
           </section>
 
           {serverError && (
-            <p
-              role="alert"
-              className="rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
-            >
+            <Notice tone="danger" role="alert" leading={<StateGlyph glyph="error" size={28} />}>
               {serverError}
-            </p>
+            </Notice>
           )}
 
           <div className="flex justify-end">
-            <button
+            <Button
               type="submit"
-              disabled={!isValid || submitting || !online}
-              className="focus-ring h-tap rounded-sm bg-amber px-6 text-btn font-display text-on-brand hover:bg-amber-deep disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={!isValid || !online}
+              loading={submitting}
+              className="px-6"
             >
-              {submitting ? 'Enviando…' : 'Enviar solicitud'}
-            </button>
+              {submitting ? AFFILIATION_FIELDS_COPY.submitting : AFFILIATION_FIELDS_COPY.submit}
+            </Button>
           </div>
         </form>
       </div>
     </PublicPageShell>
-  );
-}
-
-interface FieldProps {
-  label: string;
-  htmlFor: string;
-  error?: string;
-  children: JSX.Element;
-}
-
-function Field({ label, htmlFor, error, children }: FieldProps): JSX.Element {
-  return (
-    <div>
-      <label htmlFor={htmlFor} className="mb-1 block text-body font-medium text-text">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p role="alert" className="mt-1 text-small text-danger-ink dark:text-danger-ink-dark">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -489,7 +522,14 @@ function MunicipalityField({
   if (isInitialLoading) {
     return (
       <Field label="Municipio" htmlFor="municipality_id">
-        <p className="text-small text-text-muted">Cargando municipios…</p>
+        {() => (
+          <div role="status" className="flex flex-col gap-1">
+            <SkeletonBlock className="h-tap w-full" />
+            <span className="text-small text-text-muted">
+              {AFFILIATION_FIELDS_COPY.loadingMunicipalities}
+            </span>
+          </div>
+        )}
       </Field>
     );
   }
@@ -497,38 +537,40 @@ function MunicipalityField({
   if (status === 'error' && rows.length === 0) {
     return (
       <Field label="Municipio" htmlFor="municipality_id">
-        <div className="flex items-center gap-3">
-          <p className="text-small text-text-muted">No pudimos cargar los municipios.</p>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="focus-ring rounded-sm text-small font-medium text-text hover:underline"
-          >
-            Reintentar
-          </button>
-        </div>
+        {() => (
+          <div className="flex items-center gap-3">
+            <p className="text-small text-text-muted">
+              {AFFILIATION_FIELDS_COPY.municipalitiesError}
+            </p>
+            <Button variant="ghost" onClick={onRetry}>
+              {COMMON_COPY.retry}
+            </Button>
+          </div>
+        )}
       </Field>
     );
   }
 
   return (
-    <Field label="Municipio" htmlFor="municipality_id" error={error}>
-      <select
-        id="municipality_id"
-        defaultValue=""
-        className="focus-ring h-tap w-full rounded-xs border border-border-input bg-surface px-3 text-body text-text outline-none"
-        {...register('municipality_id', { valueAsNumber: true })}
-      >
-        <option value="" disabled>
-          Elige tu municipio
-        </option>
-        {rows.map((row) => (
-          <option key={row.municipality_id} value={row.municipality_id}>
-            {row.name} — {row.department}
-            {row.already_covered ? ' (ya tiene una empresa afiliada)' : ''}
+    <Field label="Municipio" htmlFor="municipality_id" error={error} announceError>
+      {(control) => (
+        <select
+          defaultValue=""
+          className="vy-input"
+          {...control}
+          {...register('municipality_id', { valueAsNumber: true })}
+        >
+          <option value="" disabled>
+            {AFFILIATION_FIELDS_COPY.chooseMunicipality}
           </option>
-        ))}
-      </select>
+          {rows.map((row) => (
+            <option key={row.municipality_id} value={row.municipality_id}>
+              {row.name} — {row.department}
+              {row.already_covered ? AFFILIATION_FORM_COPY.municipalityAlreadyCoveredSuffix : ''}
+            </option>
+          ))}
+        </select>
+      )}
     </Field>
   );
 }

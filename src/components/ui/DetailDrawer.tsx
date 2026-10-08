@@ -1,4 +1,7 @@
-import { useEffect, useRef, type JSX, type ReactNode } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import type { JSX, ReactNode } from 'react';
+import { COMMON_COPY } from '../../copy/common';
+import { useRestoreFocus } from '../../hooks/useRestoreFocus';
 
 export interface DetailDrawerProps {
   open: boolean;
@@ -7,93 +10,27 @@ export interface DetailDrawerProps {
   children: ReactNode;
 }
 
-function getFocusableElements(container: HTMLElement): HTMLElement[] {
-  return Array.from(
-    container.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
-    ),
-  );
-}
-
-export function DetailDrawer({
-  open,
-  title,
-  onClose,
-  children,
-}: DetailDrawerProps): JSX.Element | null {
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
-    titleRef.current?.focus();
-
-    function onKeyDown(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      if (event.key === 'Tab' && containerRef.current) {
-        const focusables = getFocusableElements(containerRef.current);
-        if (focusables.length === 0) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        }
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      previouslyFocusedRef.current?.focus();
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
+export function DetailDrawer({ open, title, onClose, children }: DetailDrawerProps): JSX.Element {
+  const restoreFocus = useRestoreFocus(open);
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
-      <button
-        type="button"
-        aria-label="Cerrar panel"
-        onClick={onClose}
-        className="absolute inset-0 bg-espresso/30"
-      />
-      <div
-        ref={containerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="detail-drawer-title"
-        className="relative flex h-full w-full max-w-[420px] min-w-[360px] flex-col rounded-l-md border-l-[3px] border-l-amber bg-surface"
-      >
-        <div className="flex items-center justify-between bg-frame-bg px-6 py-4">
-          <h2
-            id="detail-drawer-title"
-            ref={titleRef}
-            tabIndex={-1}
-            className="text-title font-display text-frame-text focus:outline-none"
-          >
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="focus-ring rounded-sm px-2 py-1 text-small text-frame-text-muted hover:text-frame-text"
-          >
-            Cerrar
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
-      </div>
-    </div>
+    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="vy-overlay fixed inset-0 z-40 bg-espresso/40" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          onCloseAutoFocus={restoreFocus}
+          className="vy-drawer fixed inset-y-0 right-0 z-40 flex w-full min-w-[360px] max-w-[420px] flex-col rounded-l-md border-l-rail border-l-amber bg-surface focus:outline-none"
+        >
+          <div className="flex items-center justify-between bg-frame-bg px-6 py-4">
+            <Dialog.Title className="font-display text-title text-frame-text">{title}</Dialog.Title>
+            <Dialog.Close className="focus-ring inline-flex h-tap items-center rounded-sm px-3 text-btn text-frame-text-muted hover:text-frame-text">
+              {COMMON_COPY.close}
+            </Dialog.Close>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

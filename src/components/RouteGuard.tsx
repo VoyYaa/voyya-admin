@@ -1,17 +1,42 @@
 import type { JSX } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Link, Navigate, Outlet } from 'react-router-dom';
+import { BrandLoader } from './brand/BrandLoader';
+import { ErrorPanel } from './ui/TableStates';
+import { buttonClassName } from './ui/button-styles';
+import { SESSION_COPY } from '../copy/common';
+import { useElapsedFlag } from '../hooks/useElapsedFlag';
 import { resolveHomePath } from '../lib/routes';
 import { useSessionStore } from '../state/session-store';
+
+const SESSION_TIMEOUT_MS = 10_000;
+
+function SessionLoading(): JSX.Element {
+  const timedOut = useElapsedFlag(true, SESSION_TIMEOUT_MS);
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-frame-bg text-frame-text">
+      {timedOut ? (
+        <div className="w-full max-w-lg">
+          <ErrorPanel title={SESSION_COPY.timeoutTitle} onRetry={() => window.location.reload()} />
+          <p className="mt-4 text-center text-small text-frame-text-muted">
+            {SESSION_COPY.timeoutBody}{' '}
+            <Link to="/login" className={buttonClassName('ghost', 'md', 'ml-2 text-frame-text')}>
+              {SESSION_COPY.timeoutLogin}
+            </Link>
+          </p>
+        </div>
+      ) : (
+        <BrandLoader variant="frame" size={72} label={SESSION_COPY.loading} />
+      )}
+    </div>
+  );
+}
 
 export function RouteGuard(): JSX.Element {
   const status = useSessionStore((s) => s.status);
 
   if (status === 'hydrating') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg text-text">
-        <p className="text-small text-text-muted">Cargando sesión…</p>
-      </div>
-    );
+    return <SessionLoading />;
   }
 
   if (status === 'guest') {

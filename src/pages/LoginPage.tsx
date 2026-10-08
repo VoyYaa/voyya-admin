@@ -3,6 +3,11 @@ import { useForm } from 'react-hook-form';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { AdminLoginDTO } from '@voyyaa/shared';
 import { loginAdmin } from '../api/auth.api';
+import { StateGlyph } from '../components/brand/StateGlyph';
+import { Button } from '../components/ui/Button';
+import { Field } from '../components/ui/Field';
+import { Notice } from '../components/ui/Notice';
+import { Wordmark } from '../components/ui/Wordmark';
 import { ApiError, domainErrorCode, isNetworkError } from '../api/errors';
 import { AUTH_ERROR_MESSAGES, LOGIN_COPY } from '../copy/auth';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
@@ -93,23 +98,17 @@ export function LoginPage(): JSX.Element {
   return (
     <div className="flex min-h-screen flex-col bg-bg">
       <header className="flex h-16 shrink-0 items-center gap-2.5 border-b-2 border-b-amber bg-frame-bg px-6 sm:px-10">
-        <span
-          aria-hidden="true"
-          className="relative inline-flex h-3 w-3 shrink-0 rounded-full bg-amber shadow-brand-halo"
-        />
-        <span className="text-title font-display font-black tracking-tight text-frame-text">
-          VoyYa
-        </span>
+        <Wordmark />
       </header>
 
       <main className="flex-1 px-6 py-14 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="mx-auto grid w-full max-w-6xl gap-y-12 md:grid-cols-2 md:items-start md:gap-x-8 md:gap-y-0">
           <div className="flex max-w-xl flex-col gap-5">
-            <p className="text-eyebrow text-amber-ink dark:text-amber">{LOGIN_COPY.eyebrow}</p>
-            <h1 className="text-hero font-display text-text">
+            <p className="vy-eyebrow">{LOGIN_COPY.eyebrow}</p>
+            <h1 className="font-display text-hero font-black text-text">
               La cola de viajes, los conductores
               <br />
-              <span className="text-amber-ink underline decoration-amber decoration-4 underline-offset-4 dark:text-amber">
+              <span className="vy-draw-underline text-amber-ink dark:text-amber">
                 y las tarifas en una sola pantalla.
               </span>
             </h1>
@@ -117,106 +116,79 @@ export function LoginPage(): JSX.Element {
           </div>
 
           <div className="w-full max-w-sm border-t border-border pt-8 md:border-l md:border-t-0 md:pl-8 md:pt-0">
-            <h2 className="mb-6 text-title font-display text-text">Iniciar sesión</h2>
+            <h2 className="mb-6 font-display text-title text-text">Iniciar sesión</h2>
 
             <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="email" className="text-body font-medium text-text">
-                  Correo
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="username"
-                  autoFocus
-                  aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? 'email-error' : undefined}
-                  className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 text-body text-text outline-none"
-                  {...register('email')}
-                />
-                {errors.email && (
-                  <p
-                    id="email-error"
-                    role="alert"
-                    className="text-small text-danger-ink dark:text-danger-ink-dark"
-                  >
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="password" className="text-body font-medium text-text">
-                  Contraseña
-                </label>
-                <div className="relative">
+              <Field label="Correo" htmlFor="email" error={errors.email?.message} announceError>
+                {(control) => (
                   <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? 'password-error' : undefined}
-                    className="focus-ring w-full rounded-xs border border-border bg-surface px-3 py-2 pr-12 text-body text-text outline-none"
-                    {...register('password')}
+                    type="email"
+                    autoComplete="username"
+                    autoFocus
+                    className="vy-input"
+                    {...control}
+                    {...register('email')}
                   />
-                  <button
-                    type="button"
-                    aria-pressed={showPassword}
-                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="focus-ring absolute inset-y-0 right-0 flex w-11 items-center justify-center text-small font-medium text-text-muted hover:text-text"
-                  >
-                    {showPassword ? 'Ocultar' : 'Mostrar'}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p
-                    id="password-error"
-                    role="alert"
-                    className="text-small text-danger-ink dark:text-danger-ink-dark"
-                  >
-                    {errors.password.message}
-                  </p>
                 )}
-              </div>
+              </Field>
+
+              <Field
+                label="Contraseña"
+                htmlFor="password"
+                error={errors.password?.message}
+                announceError
+              >
+                {(control) => (
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      className="vy-input pr-24"
+                      {...control}
+                      {...register('password')}
+                    />
+                    <button
+                      type="button"
+                      aria-pressed={showPassword}
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="focus-ring absolute inset-y-0 right-0 flex min-w-tap items-center justify-center rounded-xs px-3 text-small font-bold text-text-muted hover:text-text"
+                    >
+                      {showPassword ? 'Ocultar' : 'Mostrar'}
+                    </button>
+                  </div>
+                )}
+              </Field>
 
               {errorState.kind === 'message' && (
-                <p
-                  role="alert"
-                  className="rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink dark:text-danger-ink-dark"
-                >
+                <Notice tone="danger" role="alert" leading={<StateGlyph glyph="error" size={28} />}>
                   {errorState.text}
-                </p>
+                </Notice>
               )}
 
               {errorState.kind === 'rate-limited' && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="rounded-xs border border-amber/40 bg-amber/10 px-3 py-2"
-                >
-                  <p className="text-body text-text">
-                    Demasiados intentos. Espera antes de volver a intentarlo.
-                  </p>
+                <Notice tone="warning" role="status">
+                  <p>Demasiados intentos. Espera antes de volver a intentarlo.</p>
                   <p aria-hidden="true" className="mt-1 text-numeric text-small text-text-muted">
                     {formatCountdown(errorState.retryInSec)}
                   </p>
-                </div>
+                </Notice>
               )}
 
               {!online && (
-                <p className="text-small text-text-muted">
+                <Notice tone="info" leading={<StateGlyph glyph="offline" size={28} />}>
                   Sin conexión a internet. Podrás ingresar cuando vuelva la señal.
-                </p>
+                </Notice>
               )}
 
-              <button
+              <Button
                 type="submit"
-                disabled={submitting || rateLimited || !online}
-                className="focus-ring w-full rounded-sm bg-amber px-4 py-2.5 text-btn font-display text-on-brand transition hover:bg-amber-deep motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={rateLimited || !online}
+                loading={submitting}
+                className="w-full"
               >
                 {submitting ? 'Ingresando…' : 'Ingresar'}
-              </button>
+              </Button>
             </form>
 
             <p className="mt-6 text-small text-text-muted">{LOGIN_COPY.help}</p>

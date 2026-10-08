@@ -9,13 +9,14 @@ import type {
   TripStatus,
 } from '@voyyaa/shared';
 
-export type StatusTone = 'success' | 'brand' | 'danger' | 'neutral';
+export type StatusTone = 'success' | 'brand' | 'danger' | 'neutral' | 'strong';
 
 export const TONE_DOT_CLASS: Record<StatusTone, string> = {
   success: 'bg-success',
   brand: 'bg-amber',
   danger: 'bg-danger',
   neutral: 'bg-status-neutral',
+  strong: 'bg-espresso dark:bg-crema',
 };
 
 export const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
@@ -35,13 +36,13 @@ export const TRIP_STATUS_TONES: Record<TripStatus, StatusTone> = {
   pending_assignment: 'brand',
   assigned: 'brand',
   driver_en_route: 'brand',
-  in_progress: 'success',
+  in_progress: 'strong',
   no_driver: 'danger',
-  expired: 'danger',
+  expired: 'neutral',
   completed: 'success',
   cancelled_by_passenger: 'neutral',
   cancelled_by_driver: 'neutral',
-  no_show: 'neutral',
+  no_show: 'danger',
 };
 
 export const DRIVER_STATUS_LABELS: Record<DriverStatus, string> = {

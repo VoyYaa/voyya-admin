@@ -9,10 +9,14 @@ import {
 import { getOpsDriverDetail, getOpsDrivers } from '../api/ops-drivers.api';
 import { resendDriverPin } from '../api/admin-drivers.api';
 import { SuspendDriverAction } from '../components/drivers/SuspendDriverAction';
+import { Button } from '../components/ui/Button';
+import { buttonClassName } from '../components/ui/button-styles';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
 import { FreshnessBar } from '../components/ui/FreshnessBar';
+import { PageToolbar } from '../components/ui/PageToolbar';
 import { StatusDot } from '../components/ui/StatusDot';
-import { EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStates';
+import { DetailSkeleton, EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStates';
+import { ROW_CLASS, TABLE_HEAD_CLASS, TH_CLASS } from '../components/ui/table-styles';
 import { useAsync } from '../hooks/useAsync';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
@@ -23,11 +27,11 @@ import { useSessionStore } from '../state/session-store';
 function DriversColGroup(): JSX.Element {
   return (
     <colgroup>
-      <col style={{ width: '28%' }} />
-      <col style={{ width: '20%' }} />
-      <col style={{ width: '20%' }} />
       <col style={{ width: '26%' }} />
-      <col style={{ width: '6%' }} />
+      <col style={{ width: '20%' }} />
+      <col style={{ width: '19%' }} />
+      <col style={{ width: '24%' }} />
+      <col style={{ width: '11%' }} />
     </colgroup>
   );
 }
@@ -37,6 +41,7 @@ const RAIL_BORDER_CLASS: Record<StatusTone, string> = {
   brand: 'border-l-amber',
   danger: 'border-l-danger',
   neutral: 'border-l-status-neutral',
+  strong: 'border-l-espresso dark:border-l-crema',
 };
 
 const STATUS_OPTIONS: DriverStatus[] = [
@@ -80,24 +85,20 @@ export function OpsDriversPage(): JSX.Element {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-6 py-3">
-        <div>
-          <p className="text-eyebrow uppercase text-amber-ink dark:text-amber">Flota</p>
-          <h1 className="text-display font-display text-text">Conductores</h1>
-        </div>
+      <PageToolbar eyebrow="Flota" title="Conductores">
         <input
           type="search"
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder="Buscar por nombre, cédula o placa"
           aria-label="Buscar por nombre, cédula o placa"
-          className="focus-ring min-w-[220px] rounded-xs border border-border bg-surface px-3 py-1.5 text-body text-text outline-none"
+          className="vy-input min-w-[220px] max-w-xs flex-1"
         />
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value as DriverStatus | 'all')}
           aria-label="Filtrar por estado"
-          className="focus-ring rounded-xs border border-border bg-surface px-3 py-1.5 text-body text-text"
+          className="vy-input w-auto"
         >
           <option value="all">Todos los estados</option>
           {STATUS_OPTIONS.map((option) => (
@@ -107,14 +108,9 @@ export function OpsDriversPage(): JSX.Element {
           ))}
         </select>
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={refetch}
-          disabled={!online}
-          className="focus-ring rounded-sm border border-border px-3 py-1.5 text-btn font-display text-text hover:bg-bg-shell disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button variant="ghost" onClick={refetch} disabled={!online}>
           Actualizar
-        </button>
+        </Button>
         {role === 'admin' && (
           <Link
             to="/admin/drivers/new"
@@ -122,13 +118,13 @@ export function OpsDriversPage(): JSX.Element {
             onClick={(event) => {
               if (!online) event.preventDefault();
             }}
-            className="focus-ring rounded-sm bg-amber px-4 py-1.5 text-btn font-display text-on-brand hover:bg-amber-deep aria-disabled:pointer-events-none aria-disabled:opacity-60"
+            className={buttonClassName('primary', 'md')}
           >
             Nuevo conductor
           </Link>
         )}
         <FreshnessBar state={online ? 'stale' : 'offline'} lastUpdatedAtMs={lastLoadedAt} />
-      </div>
+      </PageToolbar>
 
       <div className={`flex-1 overflow-y-auto bg-surface ${!online ? 'opacity-85' : ''}`}>
         {isInitialLoading ? (
@@ -139,7 +135,11 @@ export function OpsDriversPage(): JSX.Element {
             </tbody>
           </table>
         ) : status === 'error' && !data ? (
-          <ErrorPanel title="No pudimos cargar los conductores." onRetry={refetch} />
+          <ErrorPanel
+            title="No pudimos cargar los conductores."
+            onRetry={refetch}
+            variant={online ? 'error' : 'offline'}
+          />
         ) : rows.length === 0 ? (
           hasAnyFilter ? (
             <EmptyPanel
@@ -160,24 +160,24 @@ export function OpsDriversPage(): JSX.Element {
         ) : (
           <table className="w-full table-fixed border-collapse">
             <DriversColGroup />
-            <thead className="sticky top-0 z-10 bg-surface-sunken">
+            <thead className={TABLE_HEAD_CLASS}>
               <tr>
                 <th
                   scope="col"
-                  className="border-l-[3px] border-l-transparent py-2 pl-[13px] pr-4 text-left text-table-header text-text-muted"
+                  className="border-l-rail border-l-transparent py-2 pl-[13px] pr-4 text-left text-table-header uppercase text-text-muted"
                 >
                   Conductor
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Vehículo
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Estado
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   Ubicación
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-table-header text-text-muted">
+                <th scope="col" className={TH_CLASS}>
                   <span className="sr-only">Acciones</span>
                 </th>
               </tr>
@@ -214,11 +214,11 @@ interface DriverRowProps {
 
 function DriverRow({ row, skewMs, onView }: DriverRowProps): JSX.Element {
   return (
-    <tr className="h-row-md border-b border-border transition-colors duration-300 hover:bg-bg-shell motion-reduce:transition-none">
+    <tr className={`${ROW_CLASS} hover:bg-bg-shell`}>
       <td
-        className={`border-l-[3px] py-2 pl-[13px] pr-4 ${RAIL_BORDER_CLASS[DRIVER_STATUS_TONES[row.status]]}`}
+        className={`border-l-rail py-2 pl-[13px] pr-4 ${RAIL_BORDER_CLASS[DRIVER_STATUS_TONES[row.status]]}`}
       >
-        <p className="text-body font-medium text-text">
+        <p className="text-body font-bold text-text">
           {row.first_name} {row.last_name}
         </p>
         <p className="text-small text-text-muted">{row.national_id}</p>
@@ -242,15 +242,14 @@ function DriverRow({ row, skewMs, onView }: DriverRowProps): JSX.Element {
       <td className="px-4 py-2">
         <LocationCell row={row} skewMs={skewMs} />
       </td>
-      <td className="px-4 py-2 text-right">
-        <button
-          type="button"
+      <td className="px-2 py-2 text-right">
+        <Button
+          variant="ghost"
           onClick={onView}
           aria-label={`Ver detalle de ${row.first_name} ${row.last_name}`}
-          className="focus-ring rounded-sm px-2 py-1 text-small font-medium text-text hover:bg-bg-shell"
         >
           Ver
-        </button>
+        </Button>
       </td>
     </tr>
   );
@@ -308,7 +307,7 @@ function DriverDetailDrawer({
 
   return (
     <DetailDrawer open={driverId !== null} title="Detalle del conductor" onClose={onClose}>
-      {status === 'loading' && <p className="text-body text-text-muted">Cargando…</p>}
+      {status === 'loading' && <DetailSkeleton />}
       {status === 'error' && <ErrorPanel title="No pudimos cargar el detalle." onRetry={refetch} />}
       {status === 'success' && data && (
         <div className="space-y-4">
@@ -351,14 +350,13 @@ function DriverDetailDrawer({
             <div className="space-y-2 border-t border-border pt-4">
               {data.pin_delivered_at === null && (
                 <div>
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
                     onClick={() => void onResendPin()}
-                    disabled={resendState === 'sending'}
-                    className="focus-ring rounded-sm border border-border px-3 py-1.5 text-btn font-display text-text hover:bg-bg-shell disabled:cursor-not-allowed disabled:opacity-60"
+                    loading={resendState === 'sending'}
                   >
                     {resendState === 'sending' ? 'Reenviando…' : 'Reenviar PIN'}
-                  </button>
+                  </Button>
                   {resendState === 'sent' && (
                     <p className="mt-1 text-small text-success-ink dark:text-success-ink-dark">
                       PIN reenviado.
