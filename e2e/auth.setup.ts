@@ -32,7 +32,12 @@ setup('authenticate as tenant admin', async ({ page }) => {
 });
 
 setup('authenticate as platform admin', async ({ page }) => {
-  await loginThroughUi(page, PLATFORM_ADMIN_EMAIL, PLATFORM_ADMIN_PASSWORD, /\/platform\/companies$/);
+  await loginThroughUi(
+    page,
+    PLATFORM_ADMIN_EMAIL,
+    PLATFORM_ADMIN_PASSWORD,
+    /\/platform\/companies$/,
+  );
   await expect(page.getByRole('heading', { name: 'Empresas' })).toBeVisible();
   await page.context().storageState({ path: PLATFORM_ADMIN_AUTH_FILE });
 });

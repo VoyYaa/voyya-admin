@@ -10,7 +10,11 @@ import {
   type AffiliationErrorCode,
   type CompanyDocumentType,
 } from '@voyyaa/shared';
-import { getAffiliationMunicipalities, submitAffiliationApplication, uploadAffiliationDocument } from '../../api/affiliation.api';
+import {
+  getAffiliationMunicipalities,
+  submitAffiliationApplication,
+  uploadAffiliationDocument,
+} from '../../api/affiliation.api';
 import { domainErrorCode, domainErrorDetails, isNetworkError } from '../../api/errors';
 import { DocumentSlotCard } from '../../components/documents/DocumentSlotCard';
 import { PublicPageShell } from '../../components/public/PublicPageShell';
@@ -22,7 +26,11 @@ import {
 } from '../../copy/affiliation';
 import { useAsync } from '../../hooks/useAsync';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
-import { createInitialDocumentSlot, validateDocumentFileClientSide, type DocumentSlot } from '../../lib/document-slots';
+import {
+  createInitialDocumentSlot,
+  validateDocumentFileClientSide,
+  type DocumentSlot,
+} from '../../lib/document-slots';
 import { COMPANY_DOCUMENT_TYPE_LABELS, COMPANY_LEGAL_FORM_LABELS } from '../../lib/status-maps';
 
 const CompanyDetailsDTO = CreateAffiliationApplicationDTO.omit({ documents: true });
@@ -151,7 +159,9 @@ export function AffiliationApplicationPage(): JSX.Element {
         return;
       }
       const code = domainErrorCode(error);
-      const conflict = code ? AFFILIATION_CONFLICT_FIELD_MAP[code as AffiliationErrorCode] : undefined;
+      const conflict = code
+        ? AFFILIATION_CONFLICT_FIELD_MAP[code as AffiliationErrorCode]
+        : undefined;
       if (conflict) {
         setError(conflict.field, { type: 'server', message: conflict.message });
         return;
@@ -221,7 +231,9 @@ export function AffiliationApplicationPage(): JSX.Element {
               disabled={submitting}
               className="space-y-4 rounded-md border border-border bg-surface p-6"
             >
-              <legend className="mb-2 text-title font-display text-text">Datos de la empresa</legend>
+              <legend className="mb-2 text-title font-display text-text">
+                Datos de la empresa
+              </legend>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Field label="Razón social" htmlFor="legal_name" error={errors.legal_name?.message}>
                   <input
@@ -237,7 +249,11 @@ export function AffiliationApplicationPage(): JSX.Element {
                     {...register('tax_id')}
                   />
                 </Field>
-                <Field label="Forma jurídica" htmlFor="legal_form" error={errors.legal_form?.message}>
+                <Field
+                  label="Forma jurídica"
+                  htmlFor="legal_form"
+                  error={errors.legal_form?.message}
+                >
                   <select
                     id="legal_form"
                     defaultValue=""
@@ -282,7 +298,9 @@ export function AffiliationApplicationPage(): JSX.Element {
               disabled={submitting}
               className="space-y-4 rounded-md border border-border bg-surface p-6"
             >
-              <legend className="mb-2 text-title font-display text-text">Representante de contacto</legend>
+              <legend className="mb-2 text-title font-display text-text">
+                Representante de contacto
+              </legend>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Field
                   label="Nombres"
@@ -314,7 +332,11 @@ export function AffiliationApplicationPage(): JSX.Element {
                     {...register('contact_email')}
                   />
                 </Field>
-                <Field label="Teléfono" htmlFor="contact_phone" error={errors.contact_phone?.message}>
+                <Field
+                  label="Teléfono"
+                  htmlFor="contact_phone"
+                  error={errors.contact_phone?.message}
+                >
                   <input
                     id="contact_phone"
                     className="focus-ring w-full rounded-xs border border-border-input bg-surface px-3 py-2 text-numeric text-text outline-none"
@@ -328,7 +350,9 @@ export function AffiliationApplicationPage(): JSX.Element {
           <section className="rounded-md border border-border bg-surface p-6">
             <div className="mb-1 flex items-baseline justify-between">
               <h2 className="text-title font-display text-text">Documentos legales</h2>
-              <span className="text-small text-text-muted">{AFFILIATION_FORM_COPY.documentsHint}</span>
+              <span className="text-small text-text-muted">
+                {AFFILIATION_FORM_COPY.documentsHint}
+              </span>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               {REQUIRED_COMPANY_DOCUMENT_TYPES.map((type) => (
@@ -349,7 +373,10 @@ export function AffiliationApplicationPage(): JSX.Element {
               </p>
             )}
             <p className="mt-3 text-small text-text-muted">
-              {REQUIRED_COMPANY_DOCUMENT_TYPES.filter((type) => slots[type].status === 'uploaded').length}{' '}
+              {
+                REQUIRED_COMPANY_DOCUMENT_TYPES.filter((type) => slots[type].status === 'uploaded')
+                  .length
+              }{' '}
               de {REQUIRED_COMPANY_DOCUMENT_TYPES.length} documentos cargados
             </p>
           </section>
@@ -381,14 +408,21 @@ export function AffiliationApplicationPage(): JSX.Element {
               </span>
             </label>
             {consentError && (
-              <p id="consent-error" role="alert" className="mt-2 text-small text-danger-ink dark:text-danger-ink-dark">
+              <p
+                id="consent-error"
+                role="alert"
+                className="mt-2 text-small text-danger-ink dark:text-danger-ink-dark"
+              >
                 {consentError}
               </p>
             )}
           </section>
 
           {serverError && (
-            <p role="alert" className="rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink">
+            <p
+              role="alert"
+              className="rounded-xs bg-danger-tint px-3 py-2 text-body text-danger-ink"
+            >
               {serverError}
             </p>
           )}
@@ -435,7 +469,12 @@ interface MunicipalityFieldProps {
   error?: string;
   status: 'loading' | 'success' | 'error';
   isInitialLoading: boolean;
-  rows: Array<{ municipality_id: number; name: string; department: string; already_covered: boolean }>;
+  rows: Array<{
+    municipality_id: number;
+    name: string;
+    department: string;
+    already_covered: boolean;
+  }>;
   onRetry: () => void;
   register: UseFormRegister<CompanyDetailsForm>;
 }

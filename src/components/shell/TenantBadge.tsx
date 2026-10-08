@@ -14,7 +14,10 @@ function CompanyStatusChip({ profile }: { profile: CompanyProfile }): JSX.Elemen
 
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-frame-chip-border bg-frame-chip-bg px-3 py-1 text-small text-frame-text-muted">
-      <span className={`h-2 w-2 shrink-0 rounded-full ${TONE_DOT_CLASS[tone]}`} aria-hidden="true" />
+      <span
+        className={`h-2 w-2 shrink-0 rounded-full ${TONE_DOT_CLASS[tone]}`}
+        aria-hidden="true"
+      />
       <span className="text-numeric font-medium text-frame-text">NIT {profile.tax_id}</span>
       <span aria-hidden="true">·</span>
       <span>{label}</span>

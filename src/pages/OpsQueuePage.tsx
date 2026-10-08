@@ -73,10 +73,13 @@ export function OpsQueuePage(): JSX.Element {
   const rows = useMemo(() => data?.rows ?? [], [data]);
 
   const filterCounts = useMemo(() => {
-    const counts = { all: rows.length, pending: 0, assigned: 0, in_progress: 0, no_driver: 0 } as Record<
-      OpsQueueStatusFilter,
-      number
-    >;
+    const counts = {
+      all: rows.length,
+      pending: 0,
+      assigned: 0,
+      in_progress: 0,
+      no_driver: 0,
+    } as Record<OpsQueueStatusFilter, number>;
     for (const row of rows) {
       for (const option of FILTER_OPTIONS) {
         if (option !== 'all' && matchesQueueFilter(row.status, option)) {

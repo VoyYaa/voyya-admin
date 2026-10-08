@@ -54,9 +54,9 @@ export function AffiliationDocumentsPage(): JSX.Element {
   const token = searchParams.get('token');
   const tokenState = useMemo(() => readAffiliationToken(token), [token]);
   const [rows, setRows] = useState<Record<CompanyDocumentType, RowState>>(initialRows);
-  const [linkFailure, setLinkFailure] = useState<'AFFILIATION_LINK_INVALID' | 'AFFILIATION_LINK_EXPIRED' | null>(
-    null,
-  );
+  const [linkFailure, setLinkFailure] = useState<
+    'AFFILIATION_LINK_INVALID' | 'AFFILIATION_LINK_EXPIRED' | null
+  >(null);
 
   const setRow = (type: CompanyDocumentType, patch: Partial<RowState>): void => {
     setRows((current) => ({ ...current, [type]: { ...current[type], ...patch } }));
@@ -192,7 +192,9 @@ function ReplaceDocumentRow({
         <p className="text-body font-medium text-text">{label}</p>
         {row.fileName && <p className="text-small text-text-muted">{row.fileName}</p>}
         {row.status === 'working' && <p className="text-small text-text-muted">Subiendo…</p>}
-        {row.status === 'saved' && <p className="text-small text-success-ink dark:text-success-ink-dark">Actualizado</p>}
+        {row.status === 'saved' && (
+          <p className="text-small text-success-ink dark:text-success-ink-dark">Actualizado</p>
+        )}
         {row.status === 'error' && row.errorMessage && (
           <p role="alert" className="text-small text-danger-ink dark:text-danger-ink-dark">
             {row.errorMessage}

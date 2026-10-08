@@ -38,10 +38,19 @@ export const AFFILIATION_CONFLICT_FIELD_MAP: Partial<
     { field: 'contact_phone' | 'contact_email' | 'tax_id' | 'municipality_id'; message: string }
   >
 > = {
-  CONTACT_PHONE_TAKEN: { field: 'contact_phone', message: AFFILIATION_ERROR_MESSAGES.CONTACT_PHONE_TAKEN },
-  CONTACT_EMAIL_TAKEN: { field: 'contact_email', message: AFFILIATION_ERROR_MESSAGES.CONTACT_EMAIL_TAKEN },
+  CONTACT_PHONE_TAKEN: {
+    field: 'contact_phone',
+    message: AFFILIATION_ERROR_MESSAGES.CONTACT_PHONE_TAKEN,
+  },
+  CONTACT_EMAIL_TAKEN: {
+    field: 'contact_email',
+    message: AFFILIATION_ERROR_MESSAGES.CONTACT_EMAIL_TAKEN,
+  },
   TAX_ID_TAKEN: { field: 'tax_id', message: AFFILIATION_ERROR_MESSAGES.TAX_ID_TAKEN },
-  APPLICATION_IN_REVIEW: { field: 'tax_id', message: AFFILIATION_ERROR_MESSAGES.APPLICATION_IN_REVIEW },
+  APPLICATION_IN_REVIEW: {
+    field: 'tax_id',
+    message: AFFILIATION_ERROR_MESSAGES.APPLICATION_IN_REVIEW,
+  },
   MUNICIPALITY_NOT_FOUND: {
     field: 'municipality_id',
     message: AFFILIATION_ERROR_MESSAGES.MUNICIPALITY_NOT_FOUND,

@@ -14,8 +14,6 @@ jobs:
   ci:
     name: Typecheck, lint, build, format
     runs-on: ubuntu-latest
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,8 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: pnpm
+          node-version: '22'
 
       # Este repo se despliega aislado: en Vercel NO existe el directorio
       # hermano ../voyya-shared. Una dependencia "link:" o "file:" funciona en
@@ -46,7 +43,9 @@ jobs:
           echo "Sin dependencias por ruta local."
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm install --no-frozen-lockfile
 
       - name: Typecheck
         run: pnpm run typecheck
