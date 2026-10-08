@@ -4,8 +4,10 @@ export const SUSPEND_DRIVER_COPY = {
   dialogTitle: '¿Suspender a este conductor?',
   dialogConfirm: 'Suspender conductor',
   dialogCancel: 'Cancelar',
-  dialogBody: (fullName: string): string => `Se cerrarán las sesiones activas de ${fullName}.`,
-  success: (fullName: string): string => `Se cerraron las sesiones de ${fullName}.`,
+  dialogBody: (fullName: string): string =>
+    `${fullName} quedará suspendido: se cerrarán sus sesiones y no podrá iniciar sesión ni tomar turno.`,
+  success: (fullName: string): string => `${fullName} quedó suspendido y se cerraron sus sesiones.`,
+  activeTrip: 'No se puede suspender mientras tiene un viaje en curso. Inténtalo cuando termine.',
   alreadySuspended: 'Este conductor ya está suspendido.',
   offline: 'Sin conexión · no se puede suspender ahora.',
   notFound: 'Este conductor ya no existe en tu empresa.',

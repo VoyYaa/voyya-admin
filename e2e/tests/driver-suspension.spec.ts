@@ -74,6 +74,69 @@ test.describe('suspend driver action', () => {
     ).toBeVisible();
   });
 
+  test('explains that a driver with a trip in progress cannot be suspended', async ({ page }) => {
+    await page.route(SUSPEND_PATH, (route) =>
+      fulfillSuspend(route, 409, {
+        code: 'DRIVER_HAS_ACTIVE_TRIP',
+        message: 'El conductor tiene un viaje en curso. Espera a que termine para suspenderlo.',
+      }),
+    );
+    await openFirstActiveDriverDetail(page);
+
+    await page.getByRole('button', { name: 'Suspender conductor' }).click();
+    await confirmSuspension(page);
+
+    await expect(
+      page
+        .getByRole('alert')
+        .filter({ hasText: 'No se puede suspender mientras tiene un viaje en curso.' }),
+    ).toBeVisible();
+  });
+
+  test('shows the Suspendido status and hides the action once the driver is suspended', async ({
+    page,
+  }) => {
+    let suspended = false;
+    await page.route(SUSPEND_PATH, async (route) => {
+      suspended = true;
+      await fulfillSuspend(route, 200, { ok: true });
+    });
+    await page.route(/\/ops\/drivers/, async (route) => {
+      if (route.request().resourceType() !== 'fetch' || !suspended) {
+        await route.continue();
+        return;
+      }
+      const response = await route.fetch();
+      const json = await response.json();
+      const mark = (driver: { driver_id: number; status: string }): void => {
+        if (driver.driver_id === targetDriverId) driver.status = 'suspended';
+      };
+      if (Array.isArray(json.rows)) json.rows.forEach(mark);
+      else mark(json);
+      await route.fulfill({ response, json });
+    });
+    let targetDriverId = -1;
+    page.on('response', async (response) => {
+      const match = /\/ops\/drivers\/(\d+)$/.exec(response.url());
+      if (match && !suspended) targetDriverId = Number(match[1]);
+    });
+    await openFirstActiveDriverDetail(page);
+
+    await page.getByRole('button', { name: 'Suspender conductor' }).click();
+    await confirmSuspension(page);
+
+    await expect(page.getByText('Este conductor ya está suspendido.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Suspender conductor' })).toHaveCount(0);
+    await expect(
+      page
+        .getByRole('dialog', { name: 'Detalle del conductor' })
+        .getByText('Suspendido', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('row').getByText('Suspendido', { exact: true }).first(),
+    ).toBeVisible();
+  });
+
   test('confirms success and refreshes the drivers list', async ({ page }) => {
     await page.route(SUSPEND_PATH, (route) => fulfillSuspend(route, 200, { ok: true }));
     let listRequests = 0;
@@ -87,7 +150,7 @@ test.describe('suspend driver action', () => {
     await page.getByRole('button', { name: 'Suspender conductor' }).click();
     await confirmSuspension(page);
 
-    await expect(page.getByText(/Se cerraron las sesiones de /)).toBeVisible();
+    await expect(page.getByText(/quedó suspendido y se cerraron sus sesiones/)).toBeVisible();
     await expect.poll(() => listRequests).toBeGreaterThan(requestsBeforeSuspend);
   });
 });
