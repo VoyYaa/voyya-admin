@@ -1,4 +1,6 @@
 import type { JSX, ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { AFFILIATION_BACK_TO_LOGIN_COPY } from '../../copy/auth';
 import { Wordmark } from '../ui/Wordmark';
 
 export interface PublicHero {
@@ -37,7 +39,15 @@ export function PublicPageShell({ children, hero }: PublicPageShellProps): JSX.E
         </section>
       )}
 
-      <main className="flex-1 px-6 py-10 sm:px-10 sm:py-14 lg:px-16">{children}</main>
+      <main className="flex-1 px-6 py-10 sm:px-10 sm:py-14 lg:px-16">
+        {children}
+        <p className="mx-auto mt-10 max-w-4xl border-t border-border pt-6 text-small text-text-muted">
+          {AFFILIATION_BACK_TO_LOGIN_COPY.prompt}{' '}
+          <Link to="/login" className="vy-link inline-flex min-h-tap items-center">
+            {AFFILIATION_BACK_TO_LOGIN_COPY.action}
+          </Link>
+        </p>
+      </main>
     </div>
   );
 }

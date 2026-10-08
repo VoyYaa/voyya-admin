@@ -1,15 +1,16 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useForm } from 'react-hook-form';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { AdminLoginDTO } from '@voyyaa/shared';
 import { loginAdmin } from '../api/auth.api';
 import { StateGlyph } from '../components/brand/StateGlyph';
 import { Button } from '../components/ui/Button';
+import { buttonClassName } from '../components/ui/button-styles';
 import { Field } from '../components/ui/Field';
 import { Notice } from '../components/ui/Notice';
 import { Wordmark } from '../components/ui/Wordmark';
 import { ApiError, domainErrorCode, isNetworkError } from '../api/errors';
-import { AUTH_ERROR_MESSAGES, LOGIN_COPY } from '../copy/auth';
+import { AUTH_ERROR_MESSAGES, LOGIN_AFFILIATION_COPY, LOGIN_COPY } from '../copy/auth';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
 import { spanishZodResolver } from '../lib/form-resolver';
 import { resolveHomePath } from '../lib/routes';
@@ -192,6 +193,18 @@ export function LoginPage(): JSX.Element {
             </form>
 
             <p className="mt-6 text-small text-text-muted">{LOGIN_COPY.help}</p>
+
+            <section
+              aria-labelledby="login-affiliation-prompt"
+              className="mt-8 flex flex-col gap-3 border-t border-border pt-6"
+            >
+              <p id="login-affiliation-prompt" className="text-small text-text-muted">
+                {LOGIN_AFFILIATION_COPY.prompt}
+              </p>
+              <Link to="/afiliacion" className={buttonClassName('ghost', 'md', 'w-full')}>
+                {LOGIN_AFFILIATION_COPY.action}
+              </Link>
+            </section>
           </div>
         </div>
       </main>
