@@ -1,3 +1,5 @@
+import { endSentence } from '../lib/text';
+
 export const SETTLEMENT_MONTHS_SHORT = [
   'ene',
   'feb',
@@ -106,7 +108,7 @@ export const SETTLEMENT_COPY = {
     offlineTitle: 'Sin conexión.',
     forbidden: 'No tienes acceso a esta pantalla.',
     staleOffline: (value: string): string =>
-      `Sin conexión. Estás viendo el reporte generado el ${value}.`,
+      endSentence(`Sin conexión. Estás viendo el reporte generado el ${value}`),
     offlineHint: 'Sin conexión: esta acción no está disponible ahora.',
   },
   range: {

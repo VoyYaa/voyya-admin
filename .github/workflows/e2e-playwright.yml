@@ -31,6 +31,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Require committed lockfile
+        run: |
+          if [ ! -f pnpm-lock.yaml ]; then
+            echo "::error::Falta pnpm-lock.yaml en el repo. Ejecuta el workflow 'Actualizar lockfile' (Actions > Actualizar lockfile > Run workflow), mezcla el PR que abre y vuelve a correr el CI."
+            exit 1
+          fi
+
       - name: Reject an obvious production URL
         env:
           TARGET_URL: ${{ inputs.base_url }}
@@ -52,6 +59,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: pnpm
 
       - name: Assert no local path dependencies
         run: |
@@ -64,7 +72,7 @@ jobs:
       - name: Install dependencies
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck e2e tests
         run: pnpm run typecheck:e2e

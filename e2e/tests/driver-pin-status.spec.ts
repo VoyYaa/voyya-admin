@@ -45,7 +45,9 @@ test.describe('driver PIN status', () => {
   }) => {
     const mock = await openDrivers(page);
     await page.getByRole('button', { name: 'Reenviar PIN a Marta Gil' }).click();
-    await expect(page.getByText(/^PIN reenviado\. Vence el /)).toBeVisible();
+    const toast = page.getByText(/^PIN reenviado\. Vence el /);
+    await expect(toast).toBeVisible();
+    await expect(toast).toHaveText(/[^.]\.$/);
     expect(mock.resendCalls).toEqual([4]);
   });
 

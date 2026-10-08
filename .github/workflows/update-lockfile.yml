@@ -1,0 +1,71 @@
+name: Actualizar lockfile
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: update-lockfile-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10.24.0'
+
+jobs:
+  update-lockfile:
+    name: Regenerar pnpm-lock.yaml y abrir PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Verificar el secreto NPM_TOKEN
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::Falta el secreto NPM_TOKEN (token con read:packages para GitHub Packages)."
+            exit 1
+          fi
+
+      - name: Regenerar el lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Comprobar que satisface --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Abrir PR con el lockfile
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml && git ls-files --error-unmatch pnpm-lock.yaml >/dev/null 2>&1; then
+            echo "::warning::El lockfile no cambió."
+            exit 0
+          fi
+          branch="chore/update-lockfile-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add pnpm-lock.yaml
+          git commit -m "chore: regenerar pnpm-lock.yaml"
+          git push origin "$branch"
+          gh pr create --base "${{ github.ref_name }}" --head "$branch" \
+            --title "chore: regenerar pnpm-lock.yaml" \
+            --body "Generado por el workflow Actualizar lockfile."

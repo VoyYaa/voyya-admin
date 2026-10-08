@@ -52,6 +52,23 @@ cp .env.example .env.local     # ajusta VITE_API_URL
 pnpm dev                       # http://localhost:5173
 ```
 
+## Lockfile (`pnpm-lock.yaml`)
+
+El lockfile se versiona. CI, el e2e y Vercel instalan con `--frozen-lockfile`: sin `pnpm-lock.yaml`
+commiteado fallan a propósito (el CI con un mensaje que lo explica). Es **requisito de Vercel**.
+
+Como `@voyyaa/shared` se instala desde GitHub Packages (ADR-016), el lockfile se genera con el
+workflow **Actualizar lockfile**, que usa el secreto `NPM_TOKEN`:
+
+1. Crea el secreto `NPM_TOKEN` en el repo (Settings > Secrets and variables > Actions): un token con
+   `read:packages`.
+2. Activa Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests".
+3. Actions > **Actualizar lockfile** > **Run workflow** (rama `main`).
+4. Revisa y mezcla el PR `chore: regenerar pnpm-lock.yaml` que abre. Repite el paso 3 cada vez que
+   cambien las dependencias de `package.json` o la versión de `@voyyaa/shared`.
+
+CI también corre `pnpm audit --prod --audit-level high` y falla con vulnerabilidades High o Critical.
+
 ## Identidad visual y tokens
 
 La consola usa la misma identidad que las apps y el sitio (ADR-026): ámbar `#F4A21A`, espresso
@@ -88,7 +105,7 @@ Vite solo expone al bundle del cliente las variables con prefijo `VITE_*` (build
 
 1. Conecta este repo de GitHub en Vercel ("Add New… → Project").
 2. **Root Directory**: raíz del repo (no hay subcarpeta `apps/admin` aquí — el repo completo
-   ES la app). `vercel.json` ya declara `framework: "vite"`, `installCommand: "pnpm install"`,
+   ES la app). `vercel.json` ya declara `framework: "vite"`, `installCommand: "pnpm install --frozen-lockfile"`,
    `buildCommand: "pnpm build"`, `outputDirectory: "dist"` — Vercel los detecta solos.
 3. **Environment Variables**: agrega `VITE_API_URL` (valor del backend en producción/staging).
 4. Deploy. Cada push a `main` (o cada PR, según la config del proyecto) dispara un build nuevo.

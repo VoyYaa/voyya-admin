@@ -1,3 +1,5 @@
+import { endSentence } from '../lib/text';
+
 export const SUSPEND_DRIVER_COPY = {
   action: 'Suspender conductor',
   actionBusy: 'Suspendiendo…',
@@ -43,7 +45,7 @@ export const PIN_COPY = {
     `Reenviar el PIN reemplaza el actual de ${fullName} y cierra sus sesiones. Tendrá que crear un PIN nuevo.`,
   dialogConfirm: 'Reenviar PIN',
   dialogCancel: 'Cancelar',
-  success: (expiresAt: string): string => `PIN reenviado. Vence el ${expiresAt}.`,
+  success: (expiresAt: string): string => endSentence(`PIN reenviado. Vence el ${expiresAt}`),
   smsFailed: 'No se pudo enviar el PIN. El PIN anterior ya no sirve; vuelve a intentarlo.',
   offline: 'Sin conexión: no se reenvió el PIN.',
   generic: 'No pudimos reenviar el PIN. Intenta de nuevo.',
@@ -51,7 +53,7 @@ export const PIN_COPY = {
   retry: 'Reintentar',
   sectionLabel: 'PIN de acceso',
   temporaryPending: (expiresAt: string | null): string =>
-    expiresAt ? `Aún no crea su PIN. Vence el ${expiresAt}.` : 'Aún no crea su PIN.',
+    expiresAt ? endSentence(`Aún no crea su PIN. Vence el ${expiresAt}`) : 'Aún no crea su PIN.',
   expiredInfo: 'El PIN temporal venció. Reenvía uno nuevo para que pueda ingresar.',
   notDeliveredInfo: 'El SMS con el PIN no llegó. Reenvíalo para que pueda ingresar.',
   personalInfo: 'Ya creó su PIN personal.',
