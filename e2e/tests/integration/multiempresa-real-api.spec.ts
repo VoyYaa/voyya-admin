@@ -316,3 +316,64 @@ test.describe('la empresa ve todo en solo lectura', () => {
     expect(result).toEqual([403, 403]);
   });
 });
+
+test.describe('condiciones de merge C-2 con la API real', () => {
+  test.describe('tarifa base sin múltiplo de 500 (D-3)', () => {
+    test.use({ storageState: PLATFORM_ADMIN_AUTH_FILE });
+
+    test('la API acepta 9.600, la consola lo guarda y rechaza 999 sin abrir la confirmación', async ({
+      page,
+    }) => {
+      await page.goto('/platform/rates');
+      const row = page
+        .getByRole('row')
+        .filter({ hasText: 'Yarumal' })
+        .filter({ hasText: 'Antioquia' });
+      await expect(row.first()).toBeVisible({ timeout: 20_000 });
+      await row
+        .first()
+        .getByRole('button', { name: /^Ver la tarifa/ })
+        .click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Yarumal · Taxi' })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Editar valores' }).click();
+      const baseFare = page.getByRole('spinbutton', { name: 'Tarifa base' });
+
+      await baseFare.fill('999');
+      await page.getByRole('button', { name: 'Revisar y guardar' }).click();
+      await expect(page.getByText(/fuera del rango/).first()).toBeVisible();
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+
+      await baseFare.fill('9600');
+      await page.getByRole('button', { name: 'Revisar y guardar' }).click();
+      const dialog = page.getByRole('dialog', { name: '¿Guardar la nueva versión de la tarifa?' });
+      await expect(dialog).toContainText('$9.600');
+      await dialog.getByRole('button', { name: 'Guardar versión' }).click();
+      await expect(
+        page.getByText('Tarifa actualizada · aplica a las solicitudes nuevas.'),
+      ).toBeVisible({ timeout: 20_000 });
+      await expect(
+        page.locator('dt', { hasText: 'Tarifa base' }).locator('xpath=..'),
+      ).toContainText('$9.600');
+    });
+  });
+
+  test.describe('línea de fuente del catálogo (MV-04)', () => {
+    test.use({ storageState: GUEST_STATE });
+
+    test('el catálogo real muestra la fuente adaptada con el enlace a la licencia CC BY-SA 4.0', async ({
+      page,
+    }) => {
+      await page.goto('/afiliacion');
+      await expect(page.getByLabel('Departamento').locator('option').nth(1)).toBeAttached({
+        timeout: 20_000,
+      });
+      const line = page.locator('p', { hasText: /adaptado/ }).filter({ hasText: 'Fuente:' });
+      await expect(line).toContainText('www.dane.gov.co, adaptado. Licencia');
+      const link = line.getByRole('link', { name: /CC BY-SA 4\.0/ });
+      await expect(link).toHaveAttribute('href', /creativecommons\.org\/licenses\/by-sa\/4\.0/);
+      await expect(link).toHaveAttribute('target', '_blank');
+      await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+  });
+});
