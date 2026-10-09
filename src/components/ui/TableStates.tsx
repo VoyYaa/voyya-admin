@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { COMMON_COPY } from '../../copy/common';
-import { StateGlyph } from '../brand/StateGlyph';
+import { StateGlyph, type StateGlyphName } from '../brand/StateGlyph';
 import { Button } from './Button';
 import { ProgressRail } from './ProgressRail';
 
@@ -42,6 +42,7 @@ export interface EmptyPanelProps {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  glyph?: StateGlyphName;
 }
 
 export function EmptyPanel({
@@ -49,10 +50,11 @@ export function EmptyPanel({
   description,
   actionLabel,
   onAction,
+  glyph = 'empty',
 }: EmptyPanelProps): JSX.Element {
   return (
     <div className="flex w-full flex-col items-center gap-4 bg-surface-sunken px-6 py-14 text-center">
-      <StateGlyph glyph="empty" />
+      <StateGlyph glyph={glyph} />
       <div className="flex flex-col gap-1">
         <p className="text-title font-display text-text">{title}</p>
         {description && <p className="text-body text-text-muted">{description}</p>}

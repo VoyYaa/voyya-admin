@@ -1,4 +1,4 @@
-import { useCallback, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   OPS_LIST_DEFAULT_LIMIT,
@@ -7,15 +7,19 @@ import {
 } from '@voyyaa/shared';
 import { getPlatformCompanies } from '../api/platform-companies.api';
 import { Button } from '../components/ui/Button';
+import { CoveragePendingBadge } from '../components/ui/CoveragePendingBadge';
 import { Notice } from '../components/ui/Notice';
 import { PageToolbar } from '../components/ui/PageToolbar';
+import { StatusDot } from '../components/ui/StatusDot';
 import { EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStates';
 import { ROW_CLASS, TABLE_HEAD_CLASS, TH_CLASS } from '../components/ui/table-styles';
 import { PLATFORM_EMPTY_COPY } from '../copy/affiliation';
+import { COVERAGE_COPY, PLATFORM_COMPANIES_COPY } from '../copy/coverage';
+import { serviceLabels } from '../copy/service';
 import { useAsync } from '../hooks/useAsync';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
 import { COMPANY_STATUS_LABELS, COMPANY_STATUS_TONES } from '../lib/status-maps';
-import { StatusDot } from '../components/ui/StatusDot';
+import { formatLongDate } from '../lib/time';
 
 const STATUS_OPTIONS: PlatformCompanyStatusFilter[] = ['pending', 'active', 'rejected', 'all'];
 
@@ -26,39 +30,72 @@ const STATUS_FILTER_LABELS: Record<PlatformCompanyStatusFilter, string> = {
   all: 'Todas',
 };
 
+type CoverageFilter = 'all' | 'pending';
+
+const COVERAGE_OPTIONS: CoverageFilter[] = ['all', 'pending'];
+
 function CompaniesColGroup(): JSX.Element {
   return (
     <colgroup>
-      <col style={{ width: '26%' }} />
       <col style={{ width: '22%' }} />
-      <col style={{ width: '12%' }} />
+      <col style={{ width: '20%' }} />
+      <col style={{ width: '9%' }} />
+      <col style={{ width: '8%' }} />
       <col style={{ width: '16%' }} />
-      <col style={{ width: '13%' }} />
+      <col style={{ width: '14%' }} />
       <col style={{ width: '11%' }} />
     </colgroup>
   );
-}
-
-function formatSubmittedAt(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-CO', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
 }
 
 export function PlatformCompaniesPage(): JSX.Element {
   const online = useNetworkOnline();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<PlatformCompanyStatusFilter>('pending');
+  const [municipalityFilter, setMunicipalityFilter] = useState<number | null>(null);
+  const [coverageFilter, setCoverageFilter] = useState<CoverageFilter>('all');
+  const [knownMunicipalities, setKnownMunicipalities] = useState<Map<number, string>>(new Map());
 
   const fetcher = useCallback(
-    () => getPlatformCompanies({ status: statusFilter, limit: OPS_LIST_DEFAULT_LIMIT }),
-    [statusFilter],
+    () =>
+      getPlatformCompanies({
+        status: statusFilter,
+        municipality_id: municipalityFilter ?? undefined,
+        limit: OPS_LIST_DEFAULT_LIMIT,
+      }),
+    [statusFilter, municipalityFilter],
   );
 
   const { data, status, isInitialLoading, refetch } = useAsync(fetcher);
-  const rows = data?.rows ?? [];
+
+  useEffect(() => {
+    if (!data) return;
+    setKnownMunicipalities((previous) => {
+      const next = new Map(previous);
+      for (const row of data.rows) next.set(row.municipality_id, row.municipality_name);
+      return next;
+    });
+  }, [data]);
+
+  const municipalityOptions = useMemo(
+    () =>
+      [...knownMunicipalities.entries()]
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })),
+    [knownMunicipalities],
+  );
+
+  const loadedRows = data?.rows ?? [];
+  const rows =
+    coverageFilter === 'pending'
+      ? loadedRows.filter((row) => !row.municipality_coverage_active)
+      : loadedRows;
+  const hasExtraFilters = municipalityFilter !== null || coverageFilter !== 'all';
+
+  const clearFilters = (): void => {
+    setMunicipalityFilter(null);
+    setCoverageFilter('all');
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -83,6 +120,33 @@ export function PlatformCompaniesPage(): JSX.Element {
             </option>
           ))}
         </select>
+        <select
+          value={municipalityFilter ?? ''}
+          onChange={(event) =>
+            setMunicipalityFilter(event.target.value === '' ? null : Number(event.target.value))
+          }
+          aria-label={PLATFORM_COMPANIES_COPY.filterByMunicipality}
+          className="vy-input w-auto"
+        >
+          <option value="">{PLATFORM_COMPANIES_COPY.allMunicipalities}</option>
+          {municipalityOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={coverageFilter}
+          onChange={(event) => setCoverageFilter(event.target.value as CoverageFilter)}
+          aria-label={PLATFORM_COMPANIES_COPY.filterByCoverage}
+          className="vy-input w-auto"
+        >
+          {COVERAGE_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {PLATFORM_COMPANIES_COPY.coverageFilters[option]}
+            </option>
+          ))}
+        </select>
         <div className="flex-1" />
         <Button variant="ghost" onClick={refetch} disabled={!online}>
           Actualizar
@@ -100,7 +164,7 @@ export function PlatformCompaniesPage(): JSX.Element {
           <table className="w-full table-fixed border-collapse">
             <CompaniesColGroup />
             <tbody>
-              <SkeletonRows columnCount={5} />
+              <SkeletonRows columnCount={7} />
             </tbody>
           </table>
         ) : status === 'error' && !data ? (
@@ -110,35 +174,48 @@ export function PlatformCompaniesPage(): JSX.Element {
             variant={online ? 'error' : 'offline'}
           />
         ) : rows.length === 0 ? (
-          <EmptyPanel
-            title={
-              statusFilter === 'pending'
-                ? PLATFORM_EMPTY_COPY.pending.title
-                : PLATFORM_EMPTY_COPY.other.title
-            }
-          />
+          coverageFilter === 'pending' && municipalityFilter === null ? (
+            <EmptyPanel title={COVERAGE_COPY.noneWaiting} glyph="success" />
+          ) : hasExtraFilters ? (
+            <EmptyPanel
+              title={PLATFORM_COMPANIES_COPY.filtersEmpty}
+              actionLabel={PLATFORM_COMPANIES_COPY.clearFilters}
+              onAction={clearFilters}
+            />
+          ) : (
+            <EmptyPanel
+              title={
+                statusFilter === 'pending'
+                  ? PLATFORM_EMPTY_COPY.pending.title
+                  : PLATFORM_EMPTY_COPY.other.title
+              }
+            />
+          )
         ) : (
           <table className="w-full table-fixed border-collapse">
             <CompaniesColGroup />
             <thead className={TABLE_HEAD_CLASS}>
               <tr>
                 <th scope="col" className={TH_CLASS}>
-                  Empresa
+                  {PLATFORM_COMPANIES_COPY.columns.company}
                 </th>
                 <th scope="col" className={TH_CLASS}>
-                  Municipio
+                  {PLATFORM_COMPANIES_COPY.columns.municipality}
                 </th>
                 <th scope="col" className={TH_CLASS}>
-                  Flota
+                  {PLATFORM_COMPANIES_COPY.columns.service}
                 </th>
                 <th scope="col" className={TH_CLASS}>
-                  Recibida
+                  {PLATFORM_COMPANIES_COPY.columns.fleet}
                 </th>
                 <th scope="col" className={TH_CLASS}>
-                  Estado
+                  {PLATFORM_COMPANIES_COPY.columns.received}
                 </th>
                 <th scope="col" className={TH_CLASS}>
-                  <span className="sr-only">Acciones</span>
+                  {PLATFORM_COMPANIES_COPY.columns.status}
+                </th>
+                <th scope="col" className={TH_CLASS}>
+                  <span className="sr-only">{PLATFORM_COMPANIES_COPY.columns.actions}</span>
                 </th>
               </tr>
             </thead>
@@ -163,20 +240,24 @@ function CompanyRow({ row, onView }: { row: PlatformCompanyRow; onView: () => vo
     <tr className={`${ROW_CLASS} hover:bg-bg-shell`}>
       <td className="py-2 pl-4 pr-4">
         <p className="text-body font-bold text-text">{row.legal_name}</p>
+        {row.display_name !== row.legal_name && (
+          <p className="text-small text-text-muted">{row.display_name}</p>
+        )}
         <p className="text-numeric text-small text-text-muted">NIT {row.tax_id}</p>
       </td>
       <td className="px-4 py-2 text-body text-text">
-        {row.municipality_name}
-        {row.municipality_already_covered && (
-          <span className="ml-2 inline-flex items-center rounded-full border border-amber/60 bg-amber/10 px-2 py-0.5 text-small font-medium text-amber-ink dark:text-amber">
-            Ya cubierto
-          </span>
+        <p>{row.municipality_name}</p>
+        {!row.municipality_coverage_active && (
+          <div className="mt-1">
+            <CoveragePendingBadge />
+          </div>
         )}
       </td>
+      <td className="px-4 py-2 text-body text-text">{serviceLabels(row.service_types)}</td>
       <td className="px-4 py-2 text-numeric text-body text-text">
-        {row.vehicle_count ?? 'Sin tope'}
+        {row.vehicle_count ?? PLATFORM_COMPANIES_COPY.unlimitedFleet}
       </td>
-      <td className="px-4 py-2 text-body text-text-muted">{formatSubmittedAt(row.submitted_at)}</td>
+      <td className="px-4 py-2 text-body text-text-muted">{formatLongDate(row.submitted_at)}</td>
       <td className="px-4 py-2">
         <StatusDot
           tone={COMPANY_STATUS_TONES[row.status]}

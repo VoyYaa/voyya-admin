@@ -1,5 +1,5 @@
-import { useCallback, useState, type JSX } from 'react';
-import { useForm, type UseFormRegister } from 'react-hook-form';
+import { useCallback, useEffect, useState, type JSX } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import {
   CompanyLegalForm,
@@ -15,6 +15,11 @@ import {
   uploadAffiliationDocument,
 } from '../../api/affiliation.api';
 import { domainErrorCode, domainErrorDetails, isNetworkError } from '../../api/errors';
+import {
+  MunicipalityPicker,
+  type CatalogLoadState,
+} from '../../components/affiliation/MunicipalityPicker';
+import { ServiceDeclarationField } from '../../components/affiliation/ServiceDeclarationField';
 import { StateGlyph } from '../../components/brand/StateGlyph';
 import { DocumentSlotCard } from '../../components/documents/DocumentSlotCard';
 import { PublicPageShell } from '../../components/public/PublicPageShell';
@@ -22,18 +27,21 @@ import { Button } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { Notice } from '../../components/ui/Notice';
 import { StepRail } from '../../components/ui/StepRail';
-import { SkeletonBlock } from '../../components/ui/TableStates';
 import {
   AFFILIATION_CONFLICT_FIELD_MAP,
   AFFILIATION_ERROR_MESSAGES,
   AFFILIATION_FIELDS_COPY,
   AFFILIATION_FORM_COPY,
   AFFILIATION_SUCCESS_COPY,
+  COMPANY_NAMES_COPY,
+  MUNICIPALITY_FIELD_COPY,
   PRIVACY_CONSENT_COPY,
+  SERVICE_DECLARATION_COPY,
 } from '../../copy/affiliation';
-import { COMMON_COPY, STEP_COPY } from '../../copy/common';
+import { STEP_COPY } from '../../copy/common';
 import { useAsync } from '../../hooks/useAsync';
 import { useNetworkOnline } from '../../hooks/useNetworkOnline';
+import { useOnReconnect } from '../../hooks/useOnReconnect';
 import { spanishZodResolver } from '../../lib/form-resolver';
 import {
   createInitialDocumentSlot,
@@ -42,7 +50,7 @@ import {
 } from '../../lib/document-slots';
 import { COMPANY_DOCUMENT_TYPE_LABELS, COMPANY_LEGAL_FORM_LABELS } from '../../lib/status-maps';
 
-const CompanyDetailsDTO = CreateAffiliationApplicationDTO.omit({ documents: true });
+const CompanyDetailsDTO = CreateAffiliationApplicationDTO.innerType().omit({ documents: true });
 type CompanyDetailsForm = z.infer<typeof CompanyDetailsDTO>;
 
 type DocumentSlots = Record<CompanyDocumentType, DocumentSlot>;
@@ -95,6 +103,7 @@ export function AffiliationApplicationPage(): JSX.Element {
   const municipalitiesFetcher = useCallback(() => getAffiliationMunicipalities(), []);
   const {
     data: municipalities,
+    error: municipalitiesError,
     status: municipalitiesStatus,
     isInitialLoading: municipalitiesInitialLoading,
     refetch: refetchMunicipalities,
@@ -102,8 +111,16 @@ export function AffiliationApplicationPage(): JSX.Element {
 
   const {
     register,
+    control,
     handleSubmit,
     setError,
+    clearErrors,
+    trigger,
+    setValue,
+    getValues,
+    resetField,
+    setFocus,
+    watch,
     formState: { errors, isValid },
   } = useForm<CompanyDetailsForm>({
     resolver: spanishZodResolver(CompanyDetailsDTO),
@@ -115,8 +132,39 @@ export function AffiliationApplicationPage(): JSX.Element {
       contact_last_name: '',
       contact_email: '',
       contact_phone: '',
+      service_types: ['taxi'],
     },
   });
+
+  const catalogFailed = municipalitiesStatus === 'error' && !municipalities;
+  const catalogOffline = catalogFailed && (!online || isNetworkError(municipalitiesError));
+  const catalogLoadState: CatalogLoadState = municipalitiesInitialLoading
+    ? 'loading'
+    : catalogOffline
+      ? 'offline'
+      : catalogFailed
+        ? 'error'
+        : 'ready';
+  useOnReconnect(catalogFailed, refetchMunicipalities);
+
+  const activeServices = municipalities?.active_service_types ?? ['taxi'];
+
+  useEffect(() => {
+    if (!municipalities) return;
+    const current = getValues('service_types');
+    const valid = current.filter((service) =>
+      municipalities.active_service_types.includes(service),
+    );
+    if (valid.length === current.length && valid.length > 0) return;
+    const [firstActive] = municipalities.active_service_types;
+    setValue('service_types', valid.length > 0 || !firstActive ? valid : [firstActive], {
+      shouldValidate: true,
+    });
+  }, [municipalities, getValues, setValue]);
+
+  const legalNameValue = watch('legal_name');
+  const publicNameValue = watch('public_name');
+  const publicNamePreview = (publicNameValue?.trim() || legalNameValue.trim() || '…').slice(0, 60);
 
   const setSlot = (type: CompanyDocumentType, patch: Partial<DocumentSlot>): void => {
     setSlots((current) => ({ ...current, [type]: { ...current[type], ...patch } }));
@@ -181,7 +229,12 @@ export function AffiliationApplicationPage(): JSX.Element {
         ? AFFILIATION_CONFLICT_FIELD_MAP[code as AffiliationErrorCode]
         : undefined;
       if (conflict) {
+        if (conflict.field === 'municipality_id') {
+          resetField('municipality_id', { defaultValue: undefined });
+          refetchMunicipalities();
+        }
         setError(conflict.field, { type: 'server', message: conflict.message });
+        if (conflict.field === 'municipality_id') setFocus('municipality_id');
         return;
       }
       if (code === 'DOCUMENTS_INCOMPLETE') {
@@ -284,18 +337,46 @@ export function AffiliationApplicationPage(): JSX.Element {
             <legend className="vy-eyebrow mb-4">{AFFILIATION_FIELDS_COPY.companySection}</legend>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field
-                label="Razón social"
+                label={COMPANY_NAMES_COPY.legalName}
                 htmlFor="legal_name"
                 error={errors.legal_name?.message}
                 announceError
               >
-                {(control) => (
-                  <input className="vy-input" {...control} {...register('legal_name')} />
+                {(fieldControl) => (
+                  <input className="vy-input" {...fieldControl} {...register('legal_name')} />
+                )}
+              </Field>
+              <Field
+                label={COMPANY_NAMES_COPY.publicName}
+                htmlFor="public_name"
+                hint={COMPANY_NAMES_COPY.publicNameHint}
+                error={errors.public_name ? COMPANY_NAMES_COPY.publicNameInvalid : undefined}
+                announceError
+              >
+                {(fieldControl) => (
+                  <>
+                    <input
+                      className="vy-input"
+                      autoComplete="off"
+                      {...fieldControl}
+                      {...register('public_name', {
+                        setValueAs: (value: string) =>
+                          value.trim().length === 0 ? undefined : value,
+                      })}
+                    />
+                    <p className="text-small text-text-muted">
+                      {COMPANY_NAMES_COPY.publicNamePreview(publicNamePreview)}
+                    </p>
+                  </>
                 )}
               </Field>
               <Field label="NIT" htmlFor="tax_id" error={errors.tax_id?.message} announceError>
-                {(control) => (
-                  <input className="vy-input text-numeric" {...control} {...register('tax_id')} />
+                {(fieldControl) => (
+                  <input
+                    className="vy-input text-numeric"
+                    {...fieldControl}
+                    {...register('tax_id')}
+                  />
                 )}
               </Field>
               <Field
@@ -304,11 +385,11 @@ export function AffiliationApplicationPage(): JSX.Element {
                 error={errors.legal_form?.message}
                 announceError
               >
-                {(control) => (
+                {(fieldControl) => (
                   <select
                     defaultValue=""
                     className="vy-input"
-                    {...control}
+                    {...fieldControl}
                     {...register('legal_form')}
                   >
                     <option value="" disabled>
@@ -322,26 +403,64 @@ export function AffiliationApplicationPage(): JSX.Element {
                   </select>
                 )}
               </Field>
-              <MunicipalityField
-                error={errors.municipality_id?.message}
-                status={municipalitiesStatus}
-                isInitialLoading={municipalitiesInitialLoading}
-                rows={municipalities?.rows ?? []}
-                onRetry={refetchMunicipalities}
-                register={register}
+              <Controller
+                control={control}
+                name="municipality_id"
+                render={({ field }) => (
+                  <MunicipalityPicker
+                    catalog={municipalities}
+                    loadState={catalogLoadState}
+                    onRetry={refetchMunicipalities}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={() => {
+                      field.onBlur();
+                      void trigger('municipality_id');
+                    }}
+                    onEdit={() => clearErrors('municipality_id')}
+                    inputRef={field.ref}
+                    error={
+                      errors.municipality_id
+                        ? errors.municipality_id.type === 'server'
+                          ? errors.municipality_id.message
+                          : MUNICIPALITY_FIELD_COPY.required
+                        : undefined
+                    }
+                  />
+                )}
               />
+              <div className="md:col-span-2">
+                <Controller
+                  control={control}
+                  name="service_types"
+                  render={({ field }) => (
+                    <ServiceDeclarationField
+                      activeServices={activeServices}
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={
+                        errors.service_types
+                          ? errors.service_types.type === 'server'
+                            ? errors.service_types.message
+                            : SERVICE_DECLARATION_COPY.required
+                          : undefined
+                      }
+                    />
+                  )}
+                />
+              </div>
               <Field
                 label="Flota declarada (número de vehículos)"
                 htmlFor="vehicle_count"
                 error={errors.vehicle_count?.message}
                 announceError
               >
-                {(control) => (
+                {(fieldControl) => (
                   <input
                     type="number"
                     min={1}
                     className="vy-input text-numeric"
-                    {...control}
+                    {...fieldControl}
                     {...register('vehicle_count', { valueAsNumber: true })}
                   />
                 )}
@@ -494,83 +613,5 @@ export function AffiliationApplicationPage(): JSX.Element {
         </form>
       </div>
     </PublicPageShell>
-  );
-}
-
-interface MunicipalityFieldProps {
-  error?: string;
-  status: 'loading' | 'success' | 'error';
-  isInitialLoading: boolean;
-  rows: Array<{
-    municipality_id: number;
-    name: string;
-    department: string;
-    already_covered: boolean;
-  }>;
-  onRetry: () => void;
-  register: UseFormRegister<CompanyDetailsForm>;
-}
-
-function MunicipalityField({
-  error,
-  status,
-  isInitialLoading,
-  rows,
-  onRetry,
-  register,
-}: MunicipalityFieldProps): JSX.Element {
-  if (isInitialLoading) {
-    return (
-      <Field label="Municipio" htmlFor="municipality_id">
-        {() => (
-          <div role="status" className="flex flex-col gap-1">
-            <SkeletonBlock className="h-tap w-full" />
-            <span className="text-small text-text-muted">
-              {AFFILIATION_FIELDS_COPY.loadingMunicipalities}
-            </span>
-          </div>
-        )}
-      </Field>
-    );
-  }
-
-  if (status === 'error' && rows.length === 0) {
-    return (
-      <Field label="Municipio" htmlFor="municipality_id">
-        {() => (
-          <div className="flex items-center gap-3">
-            <p className="text-small text-text-muted">
-              {AFFILIATION_FIELDS_COPY.municipalitiesError}
-            </p>
-            <Button variant="ghost" onClick={onRetry}>
-              {COMMON_COPY.retry}
-            </Button>
-          </div>
-        )}
-      </Field>
-    );
-  }
-
-  return (
-    <Field label="Municipio" htmlFor="municipality_id" error={error} announceError>
-      {(control) => (
-        <select
-          defaultValue=""
-          className="vy-input"
-          {...control}
-          {...register('municipality_id', { valueAsNumber: true })}
-        >
-          <option value="" disabled>
-            {AFFILIATION_FIELDS_COPY.chooseMunicipality}
-          </option>
-          {rows.map((row) => (
-            <option key={row.municipality_id} value={row.municipality_id}>
-              {row.name} — {row.department}
-              {row.already_covered ? AFFILIATION_FORM_COPY.municipalityAlreadyCoveredSuffix : ''}
-            </option>
-          ))}
-        </select>
-      )}
-    </Field>
   );
 }

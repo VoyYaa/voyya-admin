@@ -30,12 +30,16 @@ export const AFFILIATION_ERROR_MESSAGES: Record<
   AFFILIATION_LINK_EXPIRED: 'Este enlace venció.',
   DOCUMENT_STORAGE_UNAVAILABLE:
     'No pudimos guardar tu documento en este momento. Inténtalo de nuevo en unos minutos.',
+  SERVICE_NOT_AVAILABLE: 'Ese servicio no está disponible por ahora.',
 };
 
 export const AFFILIATION_CONFLICT_FIELD_MAP: Partial<
   Record<
     AffiliationErrorCode,
-    { field: 'contact_phone' | 'contact_email' | 'tax_id' | 'municipality_id'; message: string }
+    {
+      field: 'contact_phone' | 'contact_email' | 'tax_id' | 'municipality_id' | 'service_types';
+      message: string;
+    }
   >
 > = {
   CONTACT_PHONE_TAKEN: {
@@ -54,6 +58,10 @@ export const AFFILIATION_CONFLICT_FIELD_MAP: Partial<
   MUNICIPALITY_NOT_FOUND: {
     field: 'municipality_id',
     message: AFFILIATION_ERROR_MESSAGES.MUNICIPALITY_NOT_FOUND,
+  },
+  SERVICE_NOT_AVAILABLE: {
+    field: 'service_types',
+    message: AFFILIATION_ERROR_MESSAGES.SERVICE_NOT_AVAILABLE,
   },
 };
 
@@ -91,7 +99,6 @@ export const AFFILIATION_FORM_COPY = {
     'Cuéntanos de tu empresa, elige tu municipio y carga tus documentos. Te avisamos por correo ' +
     'cuando revisemos tu solicitud.',
   documentsHint: 'PDF o foto · máx. 5 MB por archivo',
-  municipalityAlreadyCoveredSuffix: ' (ya tiene una empresa afiliada)',
   successTitle: '¡Listo! Recibimos tu solicitud.',
   successBody: (email: string): string =>
     `Te escribiremos a ${email} en cuanto la revisemos. Guarda este correo, ahí llegará la respuesta.`,
@@ -123,15 +130,6 @@ export const FLEET_QUOTA_COPY = {
     `Alcanzaste tu flota declarada de ${declared}; contacta a VoyYa para ampliarla.`,
 } as const;
 
-export const ROUTING_LIMITATION_WARNING = (
-  municipalityName: string,
-  activeCompanyName: string,
-): string =>
-  `${municipalityName} ya tiene una empresa operando (${activeCompanyName}); aprobar esta empresa no le asignará ninguna solicitud de viaje hasta que exista despacho multi-empresa.`;
-
-export const ROUTING_LIMITATION_ACK_LABEL =
-  'Entiendo la limitación y quiero aprobar esta empresa de todas formas.';
-
 export const PLATFORM_EMPTY_COPY: Record<'pending' | 'other', { title: string }> = {
   pending: { title: 'No hay solicitudes pendientes.' },
   other: { title: 'No hay empresas con este estado.' },
@@ -151,11 +149,75 @@ export const AFFILIATION_FIELDS_COPY = {
   contactSection: 'Representante de contacto',
   documentsSection: 'Documentos legales',
   consentSection: 'Tratamiento de datos',
-  loadingMunicipalities: 'Cargando municipios…',
-  municipalitiesError: 'No pudimos cargar los municipios.',
   chooseOption: 'Elige una opción',
-  chooseMunicipality: 'Elige tu municipio',
   submit: 'Enviar solicitud',
   submitting: 'Enviando…',
   offline: 'Sin conexión · no se puede enviar la solicitud ahora.',
+} as const;
+
+export const COMPANY_NAMES_COPY = {
+  legalName: 'Razón social',
+  publicName: 'Nombre público (opcional)',
+  publicNameHint:
+    'Es el nombre con el que te verán los pasajeros. Si lo dejas vacío, usamos tu razón social.',
+  publicNamePreview: (name: string): string => `Así te verán los pasajeros: ${name}`,
+  publicNameInvalid: 'Escribe entre 2 y 60 caracteres, sin símbolos invisibles ni de control.',
+} as const;
+
+export const SERVICE_DECLARATION_COPY = {
+  legend: 'Servicio que ofreces',
+  onlyOne: (service: string): string => `Por ahora VoyYa ofrece solo ${service.toLowerCase()}.`,
+  required: 'Elige al menos un servicio.',
+  unavailable: 'Ese servicio no está disponible por ahora.',
+} as const;
+
+export const MUNICIPALITY_FIELD_COPY = {
+  departmentLabel: 'Departamento',
+  departmentPlaceholder: 'Elige un departamento',
+  departmentRequired: 'Elige tu departamento.',
+  label: 'Municipio',
+  placeholder: 'Escribe tu municipio',
+  placeholderNoDepartment: 'Primero elige un departamento',
+  hintNoDepartment: 'Elige un departamento para ver sus municipios.',
+  hint: (department: string): string => `Municipios de ${department}. Escribe para buscar.`,
+  listLabel: (department: string): string => `Municipios de ${department}`,
+  clearLabel: 'Borrar municipio',
+  existingCompaniesNote:
+    'En este municipio ya operan otras empresas. Tu solicitud se revisa igual.',
+  noCoverageNotice:
+    'Aún no hay cobertura en este municipio. Si tu empresa es aprobada, la cobertura se habilita después de la aprobación.',
+  noCoverageShort: 'Aún no hay cobertura en este municipio.',
+  coveredNotice: 'VoyYa revisará tu solicitud antes de aprobar a tu empresa.',
+  departmentChangedNotice: 'Cambiaste de departamento. Elige de nuevo tu municipio.',
+  departmentChosenAnnouncement: (department: string, count: number): string =>
+    `Departamento elegido: ${department}. Ahora puedes elegir tu municipio. ${
+      count === 1 ? '1 municipio disponible.' : `${count} municipios disponibles.`
+    }`,
+  departmentClearedAnnouncement: 'Departamento sin elegir. El municipio queda deshabilitado.',
+  listOpenedAnnouncement: (count: number, department: string): string =>
+    `${count} municipios en ${department}. Usa las flechas arriba y abajo para recorrerlos.`,
+  resultsCount: (count: number): string =>
+    count === 1
+      ? '1 municipio encontrado.'
+      : `${count} municipios encontrados. Usa las flechas arriba y abajo para recorrerlos.`,
+  noResults: (department: string): string =>
+    `No encontramos ese municipio en ${department}. Revisa cómo lo escribiste o si elegiste el departamento correcto.`,
+  noResultsAnnouncement: (department: string): string =>
+    `No encontramos ese municipio en ${department}.`,
+  selectedAnnouncement: (name: string, notes: readonly string[]): string =>
+    [`Municipio elegido: ${name}.`, ...notes].join(' '),
+  clearedAnnouncement: 'Municipio borrado.',
+  loading: 'Cargando municipios…',
+  loadingSlow: 'Sigue cargando. Puede tardar si tu conexión es lenta.',
+  loadError: 'No pudimos cargar los municipios.',
+  offline: 'Sin conexión. Cuando vuelva, cargamos los municipios solos.',
+  emptyCatalog: 'Por ahora no hay municipios para elegir. Vuelve a intentarlo en unos minutos.',
+  required: 'Elige tu municipio de la lista.',
+  sourceFallbackAttribution: 'Fuente: DIVIPOLA (DANE, www.dane.gov.co)',
+  sourceFallbackLicense: 'CC BY-SA 4.0',
+  sourceLicenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/deed.es',
+  sourceLead: (attribution: string): string =>
+    `${attribution.trim().replace(/\.$/, '')}, adaptado. Licencia `,
+  sourceTail: (cutDate: string): string => `. Corte ${cutDate}.`,
+  sourceNewTab: '(se abre en una pestaña nueva)',
 } as const;

@@ -38,6 +38,15 @@ const AffiliationDocumentsPage = lazy(() =>
 const PlatformCompaniesPage = lazy(() =>
   import('./pages/PlatformCompaniesPage').then((m) => ({ default: m.PlatformCompaniesPage })),
 );
+const PlatformRatesPage = lazy(() =>
+  import('./pages/PlatformRatesPage').then((m) => ({ default: m.PlatformRatesPage })),
+);
+const PlatformRateDetailPage = lazy(() =>
+  import('./pages/PlatformRateDetailPage').then((m) => ({ default: m.PlatformRateDetailPage })),
+);
+const PlatformCommissionsPage = lazy(() =>
+  import('./pages/PlatformCommissionsPage').then((m) => ({ default: m.PlatformCommissionsPage })),
+);
 const PlatformCompanyDetailPage = lazy(() =>
   import('./pages/PlatformCompanyDetailPage').then((m) => ({
     default: m.PlatformCompanyDetailPage,
@@ -83,6 +92,12 @@ export function App(): JSX.Element {
                   path="/platform/companies/:companyId"
                   element={<PlatformCompanyDetailPage />}
                 />
+                <Route path="/platform/rates" element={<PlatformRatesPage />} />
+                <Route
+                  path="/platform/rates/:municipalityId/:serviceType"
+                  element={<PlatformRateDetailPage />}
+                />
+                <Route path="/platform/commissions" element={<PlatformCommissionsPage />} />
               </Route>
             </Route>
             <Route path="/" element={<HomeRedirect />} />

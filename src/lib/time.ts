@@ -30,3 +30,11 @@ export function formatRelativeSeconds(ms: number): string {
   const seconds = Math.max(0, Math.round(ms / 1000));
   return `hace ${seconds}s`;
 }
+
+export function formatLongDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-CO', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}

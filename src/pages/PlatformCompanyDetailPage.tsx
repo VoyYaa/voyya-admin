@@ -1,4 +1,4 @@
-import { useCallback, useState, type JSX } from 'react';
+import { useCallback, useState, type JSX, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   REQUIRED_COMPANY_DOCUMENT_TYPES,
@@ -20,18 +20,20 @@ import { Button } from '../components/ui/Button';
 import { buttonClassName } from '../components/ui/button-styles';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Field } from '../components/ui/Field';
+import { CoveragePendingBadge } from '../components/ui/CoveragePendingBadge';
 import { Notice } from '../components/ui/Notice';
+import { OfficialBadge } from '../components/ui/OfficialBadge';
 import { ProgressRail } from '../components/ui/ProgressRail';
 import { StatusDot } from '../components/ui/StatusDot';
 import { ErrorPanel, SkeletonBlock } from '../components/ui/TableStates';
 import { Timeline } from '../components/ui/Timeline';
-import {
-  PLATFORM_DECISION_ERROR_MESSAGES,
-  ROUTING_LIMITATION_ACK_LABEL,
-  ROUTING_LIMITATION_WARNING,
-} from '../copy/affiliation';
+import { PLATFORM_DECISION_ERROR_MESSAGES } from '../copy/affiliation';
+import { COVERAGE_COPY, PLATFORM_COMPANIES_COPY } from '../copy/coverage';
+import { serviceLabel, serviceLabels } from '../copy/service';
 import { useAsync } from '../hooks/useAsync';
 import { useNetworkOnline } from '../hooks/useNetworkOnline';
+import { commissionError, parseDraftNumber, validateConfigNumber } from '../lib/service-config';
+import { COMMISSION_RANGE, formatFieldValue } from '../lib/service-config-fields';
 import {
   COMPANY_DECISION_LABELS,
   COMPANY_DOCUMENT_TYPE_LABELS,
@@ -40,16 +42,14 @@ import {
   COMPANY_STATUS_TONES,
   DOCUMENT_VERIFICATION_LABELS,
 } from '../lib/status-maps';
-import { useToastStore } from '../state/toast-store';
+import { formatLongDate as formatDate } from '../lib/time';
+import { useToastStore, type ToastMessage } from '../state/toast-store';
 
 type DecisionMode = 'none' | 'approve' | 'request-documents' | 'reject';
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-CO', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+interface DecidedOutcome {
+  message: string;
+  tone?: ToastMessage['tone'];
 }
 
 export function PlatformCompanyDetailPage(): JSX.Element {
@@ -68,11 +68,11 @@ export function PlatformCompanyDetailPage(): JSX.Element {
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   const onDecided = useCallback(
-    (message: string, delivery: 'sent' | 'failed') => {
+    ({ message, tone = 'success' }: DecidedOutcome, delivery: 'sent' | 'failed') => {
       setMode('none');
       setActionError(null);
       if (delivery === 'sent') {
-        pushToast('success', message);
+        pushToast(tone, message);
       } else {
         pushToast('danger', `${message} No pudimos enviarle el correo · usa "Reenviar aviso".`);
       }
@@ -165,36 +165,77 @@ export function PlatformCompanyDetailPage(): JSX.Element {
 
       <section aria-label="Datos de la empresa" className="mx-auto mt-6 max-w-6xl px-6">
         <p className="vy-eyebrow mb-3">Datos</p>
-        <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3">
           <InfoField
-            label="Flota declarada"
-            value={data.vehicle_count ? String(data.vehicle_count) : 'Sin tope'}
+            label={PLATFORM_COMPANIES_COPY.detailFleet}
+            value={
+              data.vehicle_count
+                ? String(data.vehicle_count)
+                : PLATFORM_COMPANIES_COPY.unlimitedFleet
+            }
           />
           <InfoField
-            label="Forma jurídica"
+            label={PLATFORM_COMPANIES_COPY.detailLegalForm}
             value={
               COMPANY_LEGAL_FORM_LABELS[data.legal_form as CompanyLegalForm] ?? data.legal_form
             }
           />
           <InfoField
-            label="Municipio"
-            value={data.municipality_name}
-            badge={!data.municipality_already_covered ? 'nuevo' : undefined}
+            label={PLATFORM_COMPANIES_COPY.detailContact}
+            value={data.contact_email ?? '—'}
           />
-          <InfoField label="Contacto" value={data.contact_email ?? '—'} />
+          <InfoField
+            label={PLATFORM_COMPANIES_COPY.detailMunicipality}
+            value={`${data.municipality_name}, ${data.municipality_department}`}
+            extra={!data.municipality_coverage_active ? <CoveragePendingBadge /> : undefined}
+          />
+          <InfoField
+            label={PLATFORM_COMPANIES_COPY.detailService}
+            value={serviceLabels(data.service_types)}
+          />
+          <InfoField
+            label={PLATFORM_COMPANIES_COPY.detailPublicName}
+            value={data.public_name ?? PLATFORM_COMPANIES_COPY.detailPublicNameFallback}
+            muted={data.public_name === null}
+          />
+          {data.commission && (
+            <InfoField
+              label={PLATFORM_COMPANIES_COPY.detailCommission}
+              value={formatFieldValue('pct', data.commission.commission_pct)}
+              extra={
+                <Link to="/platform/commissions" className={buttonClassName('ghost')}>
+                  {PLATFORM_COMPANIES_COPY.editCommission}
+                </Link>
+              }
+            />
+          )}
         </div>
 
-        {data.municipality_already_covered && (
-          <Notice tone="warning" role="alert" className="mt-4">
-            <p className="font-bold">Municipio ya cubierto por otra empresa</p>
-            <p className="mt-1 text-small">
-              {ROUTING_LIMITATION_WARNING(
-                data.municipality_name,
-                data.municipality_active_company_name ?? 'otra empresa activa',
+        <div className="mt-4 flex flex-col gap-3">
+          {!data.municipality_coverage_active && (
+            <Notice tone="info" role="note">
+              <p className="font-bold">{COVERAGE_COPY.approveNotice}</p>
+              <p className="mt-1 text-small">{COVERAGE_COPY.approveNoticeNote}</p>
+              {data.coverage_pending_since && (
+                <p className="mt-1 text-small">
+                  {COVERAGE_COPY.pendingSince(formatDate(data.coverage_pending_since))}
+                </p>
               )}
-            </p>
-          </Notice>
-        )}
+            </Notice>
+          )}
+          {data.municipality_active_companies.length > 0 && (
+            <Notice tone="info" role="note">
+              <p className="font-bold">
+                {PLATFORM_COMPANIES_COPY.otherCompanies(data.municipality_active_companies.length)}
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-body">
+                {data.municipality_active_companies.map((company) => (
+                  <li key={company.company_id}>{company.legal_name}</li>
+                ))}
+              </ul>
+            </Notice>
+          )}
+        </div>
       </section>
 
       <section aria-label="Documentos legales" className="mx-auto mt-8 max-w-6xl px-6">
@@ -256,12 +297,6 @@ export function PlatformCompanyDetailPage(): JSX.Element {
                       {review.reviewer_name} · {formatDate(review.decided_at)}
                     </p>
                     {review.note && <p className="text-small text-text-muted">{review.note}</p>}
-                    {review.acknowledged_routing_limitation && (
-                      <p className="text-small text-amber-ink dark:text-amber">
-                        Se reconoció la limitación de reparto con{' '}
-                        {review.municipality_active_company_name}.
-                      </p>
-                    )}
                   </>
                 ),
               }))}
@@ -369,40 +404,36 @@ export function PlatformCompanyDetailPage(): JSX.Element {
 function InfoField({
   label,
   value,
-  badge,
+  extra,
+  muted = false,
 }: {
   label: string;
   value: string;
-  badge?: string;
+  extra?: ReactNode;
+  muted?: boolean;
 }): JSX.Element {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col items-start gap-1">
       <span className="text-eyebrow uppercase text-text-muted">{label}</span>
-      <span className="text-body font-bold text-text">
+      <span
+        className={`text-body ${muted ? 'font-normal text-text-muted' : 'font-bold text-text'}`}
+      >
         {value}
-        {badge && (
-          <span className="ml-1 text-small font-normal text-amber-ink dark:text-amber">
-            · {badge}
-          </span>
-        )}
       </span>
+      {extra}
     </div>
   );
 }
 
-function mapDecisionError(error: unknown): string {
-  if (isNetworkError(error)) {
-    return 'Sin conexión · no se pudo enviar la decisión. Inténtalo de nuevo.';
-  }
+function mapDecisionError(error: unknown, serviceName = ''): string {
+  if (isNetworkError(error)) return PLATFORM_COMPANIES_COPY.connectionLost;
   const code = domainErrorCode(error);
+  if (code === 'SERVICE_NOT_AVAILABLE') return PLATFORM_COMPANIES_COPY.serviceInactive(serviceName);
   if (code) {
     const mapped = PLATFORM_DECISION_ERROR_MESSAGES[code];
     if (mapped) return mapped;
   }
-  if (code === 'MUNICIPALITY_ALREADY_COVERED') {
-    return 'El municipio ya quedó cubierto por otra empresa mientras revisabas esta solicitud. Actualiza y revisa de nuevo.';
-  }
-  return 'No pudimos guardar la decisión. Inténtalo de nuevo.';
+  return PLATFORM_COMPANIES_COPY.decisionFailed;
 }
 
 interface DecisionPanelProps {
@@ -411,11 +442,16 @@ interface DecisionPanelProps {
   setActionInFlight: (v: boolean) => void;
   setActionError: (v: string | null) => void;
   onCancel: () => void;
-  onDecided: (message: string, delivery: 'sent' | 'failed') => void;
+  onDecided: (outcome: DecidedOutcome, delivery: 'sent' | 'failed') => void;
 }
 
 interface ApprovePanelProps extends DecisionPanelProps {
   detail: PlatformCompanyDetail;
+}
+
+function baseFareError(raw: string): string | null {
+  if (raw.trim().length === 0) return null;
+  return validateConfigNumber('base_fare', raw);
 }
 
 function ApprovePanel({
@@ -428,34 +464,52 @@ function ApprovePanel({
   onDecided,
 }: ApprovePanelProps): JSX.Element {
   const [baseFare, setBaseFare] = useState('');
+  const [commission, setCommission] = useState('');
   const [note, setNote] = useState('');
-  const [ackRouting, setAckRouting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const baseFareNumber = Number(baseFare);
-  const baseFareValid =
-    baseFare.trim().length > 0 &&
-    Number.isInteger(baseFareNumber) &&
-    baseFareNumber >= 1000 &&
-    baseFareNumber <= 1_000_000;
-  const routingOk = !detail.municipality_already_covered || ackRouting;
-  const canSubmit = baseFareValid && routingOk;
+  const fares = detail.service_types.map((serviceType) => ({
+    serviceType,
+    fare:
+      detail.municipality_fares.find((entry) => entry.service_type === serviceType)?.fare ?? null,
+  }));
+  const needsInitialFare = fares.some((entry) => entry.fare === null);
+  const existingFares = fares.filter((entry) => entry.fare !== null);
+  const serviceNames = serviceLabels(detail.service_types);
+
+  const fareMessage = baseFareError(baseFare);
+  const commissionMessage = commission.trim().length === 0 ? null : commissionError(commission);
+  const fareReady = !needsInitialFare || (baseFare.trim().length > 0 && fareMessage === null);
+  const commissionReady = commission.trim().length > 0 && commissionMessage === null;
+  const canSubmit = fareReady && commissionReady;
 
   const onConfirm = async (): Promise<void> => {
+    const commissionPct = parseDraftNumber(commission);
+    if (commissionPct === null) return;
     setActionInFlight(true);
     setActionError(null);
     try {
+      const baseFareNumber = parseDraftNumber(baseFare);
       const dto: ApproveCompanyDTO = {
-        initial_fare: { base_fare: baseFareNumber },
+        initial_fare:
+          needsInitialFare && baseFareNumber !== null ? { base_fare: baseFareNumber } : undefined,
+        commission_pct: commissionPct,
         note: note.trim().length > 0 ? note.trim() : undefined,
-        acknowledge_routing_limitation: ackRouting ? true : undefined,
       };
       const result = await approveCompany(companyId, dto);
       setConfirmOpen(false);
-      onDecided('Empresa aprobada · ya puede registrar conductores.', result.notification.delivery);
+      onDecided(
+        result.municipality_coverage_active
+          ? { message: PLATFORM_COMPANIES_COPY.approvedToast }
+          : {
+              message: COVERAGE_COPY.approvedToast(detail.municipality_name),
+              tone: 'info',
+            },
+        result.notification.delivery,
+      );
     } catch (error) {
       setConfirmOpen(false);
-      setActionError(mapDecisionError(error));
+      setActionError(mapDecisionError(error, serviceNames));
     } finally {
       setActionInFlight(false);
     }
@@ -463,21 +517,73 @@ function ApprovePanel({
 
   return (
     <div className="flex max-w-xl flex-col gap-4">
+      {needsInitialFare ? (
+        <Field
+          label={PLATFORM_COMPANIES_COPY.initialFareLabel}
+          htmlFor="approve-base-fare"
+          hint={PLATFORM_COMPANIES_COPY.noFareHint}
+          error={fareMessage ?? undefined}
+        >
+          {(control) => (
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1000}
+              max={1_000_000}
+              step={1}
+              value={baseFare}
+              onChange={(event) => setBaseFare(event.target.value)}
+              onWheel={(event) => event.currentTarget.blur()}
+              className="vy-input text-numeric"
+              {...control}
+            />
+          )}
+        </Field>
+      ) : null}
+
+      {existingFares.map(({ serviceType, fare }) =>
+        fare ? (
+          <div
+            key={serviceType}
+            className="flex flex-wrap items-center gap-x-4 gap-y-1 border-y border-border py-3"
+          >
+            <span className="text-body font-bold text-text">
+              {PLATFORM_COMPANIES_COPY.existingFare} · {serviceLabel(serviceType)}
+            </span>
+            <span className="text-numeric text-body text-text">
+              {formatFieldValue('cop', fare.base_fare)}
+            </span>
+            <OfficialBadge official={fare.is_official} />
+            <Link
+              to={`/platform/rates/${fare.municipality_id}/${serviceType}`}
+              className={buttonClassName('ghost')}
+            >
+              {PLATFORM_COMPANIES_COPY.viewFare}
+            </Link>
+            <span className="w-full text-small text-text-muted">
+              {PLATFORM_COMPANIES_COPY.existingFareNote}
+            </span>
+          </div>
+        ) : null,
+      )}
+
       <Field
-        label="Tarifa base inicial"
-        htmlFor="approve-base-fare"
-        hint="Obligatoria: ninguna empresa activa sale de aquí sin tarifa configurada."
+        label={PLATFORM_COMPANIES_COPY.commissionLabel}
+        htmlFor="approve-commission"
+        hint={`${PLATFORM_COMPANIES_COPY.commissionHint} ${PLATFORM_COMPANIES_COPY.commissionRange(COMMISSION_RANGE.min, COMMISSION_RANGE.max)}`}
+        error={commissionMessage ?? undefined}
       >
         {(control) => (
           <input
             type="number"
-            inputMode="numeric"
-            min={1000}
-            max={1_000_000}
-            step={500}
-            value={baseFare}
-            onChange={(event) => setBaseFare(event.target.value)}
-            className="vy-input text-numeric"
+            inputMode="decimal"
+            min={COMMISSION_RANGE.min}
+            max={COMMISSION_RANGE.max}
+            step={COMMISSION_RANGE.step}
+            value={commission}
+            onChange={(event) => setCommission(event.target.value)}
+            onWheel={(event) => event.currentTarget.blur()}
+            className="vy-input w-40 text-numeric"
             {...control}
           />
         )}
@@ -499,18 +605,6 @@ function ApprovePanel({
         )}
       </Field>
 
-      {detail.municipality_already_covered && (
-        <label className="flex min-h-tap items-center gap-2.5 rounded-xs border border-amber/50 bg-amber/10 px-3 py-2">
-          <input
-            type="checkbox"
-            checked={ackRouting}
-            onChange={(event) => setAckRouting(event.target.checked)}
-            className="focus-ring h-5 w-5 shrink-0"
-          />
-          <span className="text-body text-text">{ROUTING_LIMITATION_ACK_LABEL}</span>
-        </label>
-      )}
-
       <div className="flex gap-3">
         <Button variant="ghost" onClick={onCancel} className="flex-1">
           Cancelar
@@ -530,12 +624,23 @@ function ApprovePanel({
         confirmDisabled={actionInFlight}
         confirming={actionInFlight}
       >
-        <p>
-          Aprobar habilita a <strong>{detail.legal_name}</strong> para crear conductores
-          {!detail.municipality_already_covered &&
-            ' y abre ' + detail.municipality_name + ' como municipio de cobertura'}
-          .
-        </p>
+        <div className="flex flex-col gap-2">
+          <p>
+            Aprobar habilita a <strong>{detail.legal_name}</strong>{' '}
+            {PLATFORM_COMPANIES_COPY.approveService(serviceNames)}
+          </p>
+          {!detail.municipality_coverage_active && (
+            <p>{PLATFORM_COMPANIES_COPY.approveNoCoverage(detail.municipality_name)}</p>
+          )}
+          {detail.municipality_active_companies.length > 0 && (
+            <p>
+              {PLATFORM_COMPANIES_COPY.sharesWith(
+                detail.municipality_name,
+                detail.municipality_active_companies.length,
+              )}
+            </p>
+          )}
+        </div>
       </ConfirmDialog>
     </div>
   );
@@ -568,7 +673,7 @@ function RequestDocumentsPanel({
         document_types: selected,
         note: note.trim(),
       });
-      onDecided('Le pedimos el documento a la empresa.', result.notification.delivery);
+      onDecided({ message: 'Le pedimos el documento a la empresa.' }, result.notification.delivery);
     } catch (error) {
       setActionError(mapDecisionError(error));
     } finally {
@@ -645,7 +750,7 @@ function RejectPanel({
     try {
       const result = await rejectCompany(companyId, { note: note.trim() });
       setConfirmOpen(false);
-      onDecided('Solicitud rechazada.', result.notification.delivery);
+      onDecided({ message: 'Solicitud rechazada.' }, result.notification.delivery);
     } catch (error) {
       setConfirmOpen(false);
       setActionError(mapDecisionError(error));

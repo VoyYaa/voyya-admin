@@ -2,6 +2,8 @@ import { useCallback, type JSX, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { OPS_LIST_DEFAULT_LIMIT } from '@voyyaa/shared';
 import { getPlatformCompanies } from '../../api/platform-companies.api';
+import { COMMISSIONS_COPY } from '../../copy/commissions';
+import { RATES_COPY } from '../../copy/rates';
 import { SETTLEMENT_COPY } from '../../copy/settlement';
 import { useAsync } from '../../hooks/useAsync';
 import { useSessionStore } from '../../state/session-store';
@@ -145,6 +147,11 @@ const ADMIN_ITEMS: NavItem[] = [
   { to: '/admin/settings', label: 'Parámetros', icon: SettingsIcon },
 ];
 
+const PLATFORM_ITEMS: NavItem[] = [
+  { to: '/platform/rates', label: RATES_COPY.nav, icon: SettingsIcon },
+  { to: '/platform/commissions', label: COMMISSIONS_COPY.nav, icon: ReportIcon },
+];
+
 function NavGroup({ label, children }: { label: string; children: ReactNode }): JSX.Element {
   return (
     <div className="flex flex-col gap-1">
@@ -213,6 +220,9 @@ export function Sidebar(): JSX.Element {
       >
         <NavGroup label="Plataforma">
           <PlatformCompaniesNavLink />
+          {PLATFORM_ITEMS.map((item) => (
+            <NavItemLink key={item.to} item={item} />
+          ))}
         </NavGroup>
       </nav>
     );
