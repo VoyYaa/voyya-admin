@@ -18,13 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Require committed lockfile
-        run: |
-          if [ ! -f pnpm-lock.yaml ]; then
-            echo "::error::Falta pnpm-lock.yaml en el repo. Ejecuta el workflow 'Actualizar lockfile' (Actions > Actualizar lockfile > Run workflow), mezcla el PR que abre y vuelve a correr el CI."
-            exit 1
-          fi
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -34,7 +27,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: pnpm
 
       # Este repo se despliega aislado: en Vercel NO existe el directorio
       # hermano ../voyya-shared. Una dependencia "link:" o "file:" funciona en

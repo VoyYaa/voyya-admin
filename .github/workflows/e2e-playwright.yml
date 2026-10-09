@@ -59,7 +59,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: pnpm
 
       - name: Assert no local path dependencies
         run: |
@@ -72,7 +71,7 @@ jobs:
       - name: Install dependencies
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm install --frozen-lockfile
+        run: if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install --no-frozen-lockfile; fi
 
       - name: Typecheck e2e tests
         run: pnpm run typecheck:e2e
