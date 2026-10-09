@@ -28,7 +28,9 @@ export function DetailDrawer({ open, title, onClose, children }: DetailDrawerPro
               {COMMON_COPY.close}
             </Dialog.Close>
           </div>
-          <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+          <div tabIndex={0} className="focus-ring flex-1 overflow-y-auto px-6 py-4">
+            {children}
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
