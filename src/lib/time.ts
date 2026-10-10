@@ -38,3 +38,16 @@ export function formatLongDate(iso: string): string {
     year: 'numeric',
   });
 }
+
+const BOGOTA_TIME_ZONE = 'America/Bogota';
+
+export function formatBogotaDateTime(iso: string): string {
+  const date = new Date(iso);
+  const part = (options: Intl.DateTimeFormatOptions): string =>
+    new Intl.DateTimeFormat('es-CO', { timeZone: BOGOTA_TIME_ZONE, ...options }).format(date);
+  const day = part({ day: 'numeric' });
+  const month = part({ month: 'short' }).replace('.', '');
+  const year = part({ year: 'numeric' });
+  const time = part({ hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${day} ${month} ${year}, ${time}`;
+}

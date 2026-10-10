@@ -9,6 +9,8 @@ import {
   type TripStatus,
 } from '@voyyaa/shared';
 import { getOpsQueue, getOpsTripDetail } from '../api/ops-queue.api';
+import { StartBlockNotice } from '../components/ops/StartBlockNotice';
+import { StartBlockStatus } from '../components/ops/StartBlockStatus';
 import { Button } from '../components/ui/Button';
 import { DetailDrawer } from '../components/ui/DetailDrawer';
 import { FreshnessBar } from '../components/ui/FreshnessBar';
@@ -16,7 +18,7 @@ import { PageToolbar } from '../components/ui/PageToolbar';
 import { StatStrip, type StatItem } from '../components/ui/StatStrip';
 import { StatusDot } from '../components/ui/StatusDot';
 import { DetailSkeleton, EmptyPanel, ErrorPanel, SkeletonRows } from '../components/ui/TableStates';
-import { Timeline } from '../components/ui/Timeline';
+import { Timeline, type TimelineItem } from '../components/ui/Timeline';
 import {
   ROW_CLASS,
   TABLE_HEAD_CLASS,
@@ -25,12 +27,19 @@ import {
 } from '../components/ui/table-styles';
 import { STAT_COPY } from '../copy/common';
 import { TRIP_DETAIL_COPY } from '../copy/drivers';
+import { START_BLOCKED_COPY } from '../copy/ops';
 import { useAsync } from '../hooks/useAsync';
 import { useOpsPolling } from '../hooks/useOpsPolling';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { useQueueAnnouncement } from '../hooks/useQueueAnnouncement';
 import { useRowFlash } from '../hooks/useRowFlash';
-import { elapsedMsSince, formatClockTime, formatDurationMmSs } from '../lib/time';
+import { START_CODE_MAX_ATTEMPTS, startBlockState } from '../lib/start-block';
+import {
+  elapsedMsSince,
+  formatBogotaDateTime,
+  formatClockTime,
+  formatDurationMmSs,
+} from '../lib/time';
 import {
   QUEUE_FILTER_LABELS,
   TONE_DOT_CLASS,
@@ -302,7 +311,8 @@ interface QueueRowProps {
 }
 
 function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Element {
-  const tone = TRIP_STATUS_TONES[row.status];
+  const blocked = startBlockState(row) === 'blocked';
+  const tone: StatusTone = blocked ? 'danger' : TRIP_STATUS_TONES[row.status];
   const elapsed = elapsedMsSince(row.status_since, skewMs);
   const routeLabel = `${row.pickup_address} → ${row.dropoff_address}`;
 
@@ -324,6 +334,7 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
           label={TRIP_STATUS_LABELS[row.status]}
           pulse={row.status === 'pending_assignment'}
         />
+        <StartBlockStatus source={row} />
       </td>
       <td className="px-4 py-2 text-body text-text">
         {row.driver ? `${row.driver.name} · ${row.driver.plate}` : '—'}
@@ -335,7 +346,7 @@ function QueueRow({ row, skewMs, isFlashing, onView }: QueueRowProps): JSX.Eleme
         <Button
           variant="ghost"
           onClick={onView}
-          aria-label={`Ver detalle de la solicitud de ${row.passenger_name}`}
+          aria-label={`Ver detalle de la solicitud de ${row.passenger_name}${blocked ? START_BLOCKED_COPY.viewAriaSuffix : ''}`}
         >
           Ver
         </Button>
@@ -372,6 +383,20 @@ function RowRail({ tone, active }: RowRailProps): JSX.Element {
   );
 }
 
+function buildTimelineItems(data: OpsTripDetail): TimelineItem[] {
+  const blockedItems: TimelineItem[] = data.start_blocked_at
+    ? [{ label: START_BLOCKED_COPY.timeline, timestamp: data.start_blocked_at }]
+    : [];
+  return [
+    { label: 'Creada', timestamp: data.timeline.requested_at },
+    { label: 'Asignada', timestamp: data.timeline.assigned_at },
+    { label: 'Conductor llegó', timestamp: data.timeline.arrived_at },
+    ...blockedItems,
+    { label: START_BLOCKED_COPY.startedTimeline, timestamp: data.timeline.started_at },
+    { label: 'Finalizada', timestamp: data.timeline.finished_at },
+  ];
+}
+
 interface TripDetailDrawerProps {
   tripId: number | null;
   onClose: () => void;
@@ -397,6 +422,7 @@ function TripDetailDrawer({ tripId, onClose }: TripDetailDrawerProps): JSX.Eleme
               label={TRIP_STATUS_LABELS[data.status]}
             />
           </div>
+          <StartBlockNotice source={data} />
           <dl className="space-y-2 text-body text-text">
             <div>
               <dt className="text-small text-text-muted">Pasajero</dt>
@@ -418,17 +444,27 @@ function TripDetailDrawer({ tripId, onClose }: TripDetailDrawerProps): JSX.Eleme
               <dt className="text-small text-text-muted">Tarifa total</dt>
               <dd className="text-numeric">${data.fare.total.toLocaleString('es-CO')}</dd>
             </div>
+            {data.start_failed_attempts > 0 && (
+              <div>
+                <dt className="text-small text-text-muted">{START_BLOCKED_COPY.attemptsRow}</dt>
+                <dd className="text-numeric">
+                  {START_BLOCKED_COPY.attemptsRowValue(
+                    data.start_failed_attempts,
+                    START_CODE_MAX_ATTEMPTS,
+                  )}
+                </dd>
+              </div>
+            )}
+            {data.start_blocked_at && (
+              <div>
+                <dt className="text-small text-text-muted">{START_BLOCKED_COPY.blockedAtRow}</dt>
+                <dd className="text-numeric">{formatBogotaDateTime(data.start_blocked_at)}</dd>
+              </div>
+            )}
           </dl>
           <div>
             <h3 className="mb-2 text-title font-display text-text">Línea de tiempo</h3>
-            <Timeline
-              items={[
-                { label: 'Creada', timestamp: data.timeline.requested_at },
-                { label: 'Asignada', timestamp: data.timeline.assigned_at },
-                { label: 'Conductor llegó', timestamp: data.timeline.arrived_at },
-                { label: 'Finalizada', timestamp: data.timeline.finished_at },
-              ]}
-            />
+            <Timeline items={buildTimelineItems(data)} />
           </div>
         </div>
       )}

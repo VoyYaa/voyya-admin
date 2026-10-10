@@ -13,7 +13,7 @@ export interface NoticeProps {
 
 const TONE_CLASS: Record<NoticeTone, string> = {
   danger:
-    'border-danger/40 bg-danger-tint text-danger-ink dark:bg-danger/15 dark:text-danger-ink-dark',
+    'border-danger/40 bg-danger-tint text-danger-ink dark:bg-danger/10 dark:text-danger-ink-dark',
   info: 'border-info/40 bg-info-tint text-info-ink dark:bg-info/15 dark:text-info-ink-dark',
   warning: 'border-amber/50 bg-amber/10 text-text',
   success:
